@@ -652,16 +652,40 @@ function serverProps(){
     'white-list='+S.wl,'enforce-whitelist='+S.wl,'view-distance=10','simulation-distance=8','enable-command-block=false',
     'pvp=true','spawn-protection=0','level-name=world'].join('\n')+'\n';
 }
-function startBat(){return ['@echo off','title Minecraft Server','cd /d "%~dp0"','setlocal enabledelayedexpansion','set "JAR="',
-  'for %%f in (*.jar) do set "JAR=%%f"','if "!JAR!"=="" ( echo No server file found. Run "1 - get server.bat" first, or put your .jar here. & pause & exit /b )',
-  'echo Starting !JAR! with '+S.ram+'GB RAM...','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "!JAR!" nogui','echo.','echo Server stopped.','pause >nul'].join('\r\n')+'\r\n';}
-function startSh(){return ['#!/bin/bash','cd "$(dirname "$0")"','JAR=$(ls *.jar 2>/dev/null | head -n1)',
-  'if [ -z "$JAR" ]; then echo "No .jar found. Run the get-server helper or drop your jar here."; read -n1; exit 1; fi',
-  'echo "Starting $JAR with '+S.ram+'GB RAM..."','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "$JAR" nogui'].join('\n')+'\n';}
+function startBat(){
+  var lines=['@echo off','title Minecraft Server','cd /d "%~dp0"','setlocal enabledelayedexpansion','set "JAR="',
+    'for %%f in (*.jar) do set "JAR=%%f"'];
+  if(S.sw==='paper'){
+    // auto-download Paper on first run if nothing is there yet
+    lines.push('if "!JAR!"=="" (',
+      '  echo No server file yet. Downloading Paper for Minecraft '+S.mcver+' ...',
+      '  powershell -NoProfile -Command "$v=\''+S.mcver+'\'; try { $b=(Invoke-RestMethod \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds\\").builds[-1]; $n=$b.downloads.application.name; Invoke-WebRequest \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds/$($b.build)/downloads/$n\\" -OutFile server.jar; Write-Host \'Downloaded server.jar\' } catch { Write-Host \'Could not download automatically. Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder.\' }"',
+      '  for %%f in (*.jar) do set "JAR=%%f"',
+      ')');
+  }
+  lines.push('if "!JAR!"=="" ( echo.& echo No server file found. Put a .jar in this folder, then run this again. & pause & exit /b )',
+    'echo Starting !JAR! with '+S.ram+'GB RAM...','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "!JAR!" nogui','echo.','echo Server stopped.','pause >nul');
+  return lines.join('\r\n')+'\r\n';
+}
+function startSh(){
+  var lines=['#!/bin/bash','cd "$(dirname "$0")"','JAR=$(ls *.jar 2>/dev/null | head -n1)'];
+  if(S.sw==='paper'){
+    lines.push('if [ -z "$JAR" ]; then',
+      '  echo "No server file yet. Downloading Paper for Minecraft '+S.mcver+' ..."',
+      '  V="'+S.mcver+'"',
+      '  B=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$V/builds" | grep -o \'"build":[0-9]*\' | tail -1 | grep -o \'[0-9]*\')',
+      '  curl -s -o server.jar "https://api.papermc.io/v2/projects/paper/versions/$V/builds/$B/downloads/paper-$V-$B.jar"',
+      '  JAR=$(ls *.jar 2>/dev/null | head -n1)',
+      'fi');
+  }
+  lines.push('if [ -z "$JAR" ]; then echo "No .jar found. Put your server file here and run again."; read -n1; exit 1; fi',
+    'echo "Starting $JAR with '+S.ram+'GB RAM..."','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "$JAR" nogui');
+  return lines.join('\n')+'\n';
+}
 function getServerBat(){
   if(S.sw==='paper'){return ['@echo off','title Get server file','cd /d "%~dp0"','echo Downloading Paper for Minecraft '+S.mcver+' ...',
     'powershell -NoProfile -Command "$v=\''+S.mcver+'\'; try { $b=(Invoke-RestMethod \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds\\").builds[-1]; $n=$b.downloads.application.name; Invoke-WebRequest \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds/$($b.build)/downloads/$n\\" -OutFile server.jar; Write-Host \'Saved as server.jar\' } catch { Write-Host \'Auto-download failed. Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder.\' }"',
-    'echo.','echo Now open "2 - Start.bat"','pause'].join('\r\n')+'\r\n';}
+    'echo.','echo Now open "Start.bat"','pause'].join('\r\n')+'\r\n';}
   var link=S.sw==='vanilla'?'https://www.minecraft.net/en-us/download/server':S.sw==='fabric'?'https://fabricmc.net/use/server/':'https://files.minecraftforge.net/';
   return ['@echo off','title Get server file','echo For '+SWNAME[S.sw]+', download the server from:','echo   '+link,
     'echo Then put the .jar in this folder (no renaming needed) and open Start.','start '+link,'pause'].join('\r\n')+'\r\n';}
@@ -686,12 +710,12 @@ function readme(){var slugs=Object.keys(S.addons).filter(function(k){return S.ad
   return ['BlockForge - your Minecraft server','==================================','',
     'QUICK START',
     '1) Unzip this whole folder somewhere easy, like your Desktop.',
-    S.sw==='paper'?'2) Open  "1 - get server.bat"  (it downloads the server file for you).'
-                  :'2) Open  "1 - get server.bat"  and download the '+SWNAME[S.sw]+' server, then put the .jar in this folder.',
-    '3) Open  "2 - Start.bat"  (Mac: start.command). That is it.',
-    slugs.length?'4) For your add-ons, open  "3 - install add-ons.bat"  once.':'',
+    S.sw==='paper'?'2) Open  "Start.bat"  (Mac: start.command). On first run it downloads the server for you and starts it. That is it.'
+                  :'2) Open  "1 - get server.bat"  to download the '+SWNAME[S.sw]+' server, put the .jar in this folder, then open  "Start.bat".',
+    slugs.length?'3) For your add-ons, open  "install add-ons.bat"  once.':'',
     '','GOOD TO KNOW',
-    '- No renaming: Start uses whatever .jar is in the folder.',
+    S.sw==='paper'?'- One click: Start downloads the server itself the first time, then just runs it after that.'
+                  :'- No renaming: Start uses whatever .jar is in the folder.',
     '- The EULA is already accepted (you ticked the box), so eula.txt is set to true.',
     '- Memory is '+S.ram+'GB. To change it, edit the number in Start.bat.',
     /^26\./.test(S.mcver)?'- Minecraft '+S.mcver+' needs Java 25 installed.':'',
@@ -707,11 +731,13 @@ $('#downloadZip').addEventListener('click',function(){
   setStatus('Building your server…');var zip=new JSZip();
   zip.file('eula.txt','#Minecraft EULA accepted via BlockForge\neula=true\n');
   zip.file('server.properties',serverProps());
-  zip.file('2 - Start.bat',startBat());zip.file('start.command',startSh());zip.file('1 - get server.bat',getServerBat());
+  zip.file('Start.bat',startBat());zip.file('start.command',startSh());
+  // Paper downloads itself inside Start, so the separate get-server file is only needed for Fabric/Forge
+  if(S.sw!=='paper')zip.file('1 - get server.bat',getServerBat());
   zip.file('README.txt',readme());
   if(S.icon)zip.file('server-icon.png',S.icon);
   var slugs=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
-  if(slugs.length){zip.file('3 - install add-ons.bat',installBat());zip.file('install-addons.ps1',installPs1());}
+  if(slugs.length){zip.file('install add-ons.bat',installBat());zip.file('install-addons.ps1',installPs1());}
   zip.generateAsync({type:'blob'}).then(function(blob){var a=document.createElement('a');a.href=URL.createObjectURL(blob);
     a.download=(S.motd?S.motd.replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-|-$/g,''):'minecraft')+'-server.zip';
     document.body.appendChild(a);a.click();a.remove();
@@ -719,7 +745,27 @@ $('#downloadZip').addEventListener('click',function(){
   }).catch(function(e){setStatus('Error: '+e.message);});
 });
 
-buildAddons();render();
+/* keep the version list current automatically — pull Paper's supported versions */
+function loadVersions(){
+  fetch('https://api.papermc.io/v2/projects/paper').then(function(r){return r.json();}).then(function(j){
+    var vers=(j&&j.versions)||[];
+    if(!vers.length)return;
+    // newest first; Paper lists oldest->newest
+    vers=vers.slice().reverse();
+    var sel=$('#mcver');var current=S.mcver;
+    sel.innerHTML='';
+    vers.forEach(function(v,i){
+      var o=document.createElement('option');o.value=v;o.textContent=v+(i===0?' — latest':'');
+      sel.appendChild(o);
+    });
+    // keep latest selected by default
+    S.mcver=vers[0];sel.value=vers[0];
+    $('#verHint').textContent=(/^26\./.test(S.mcver))?'Heads up: 26.x needs Java 25 installed to run.':'Pick the version you and your friends play on. This list updates itself.';
+    render();
+  }).catch(function(){/* offline or blocked: keep the built-in fallback list */});
+}
+
+buildAddons();render();loadVersions();
 </script>
 </body>
 </html>
