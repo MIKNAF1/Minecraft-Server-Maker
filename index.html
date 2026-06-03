@@ -746,19 +746,22 @@ $('#downloadZip').addEventListener('click',function(){
 });
 
 /* keep the version list current automatically — pull Paper's supported versions */
+function verKey(v){
+  // turn "26.1.2" or "1.21.11" into a comparable number array; handle snapshots/pre safely
+  var m=String(v).match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if(!m)return [0,0,0];
+  return [parseInt(m[1]||0,10),parseInt(m[2]||0,10),parseInt(m[3]||0,10)];
+}
+function cmpVer(a,b){var x=verKey(a),y=verKey(b);for(var i=0;i<3;i++){if(x[i]!==y[i])return y[i]-x[i];}return 0;}
 function loadVersions(){
   fetch('https://api.papermc.io/v2/projects/paper').then(function(r){return r.json();}).then(function(j){
     var vers=(j&&j.versions)||[];
     if(!vers.length)return;
-    // newest first; Paper lists oldest->newest
-    vers=vers.slice().reverse();
-    var sel=$('#mcver');var current=S.mcver;
-    sel.innerHTML='';
-    vers.forEach(function(v,i){
-      var o=document.createElement('option');o.value=v;o.textContent=v+(i===0?' — latest':'');
-      sel.appendChild(o);
-    });
-    // keep latest selected by default
+    // only keep clean release versions (skip snapshots/pre-releases), then sort newest first
+    vers=vers.filter(function(v){return /^\d+(\.\d+){1,2}$/.test(v);}).sort(cmpVer);
+    if(!vers.length)return;
+    var sel=$('#mcver');sel.innerHTML='';
+    vers.forEach(function(v,i){var o=document.createElement('option');o.value=v;o.textContent=v+(i===0?' — latest':'');sel.appendChild(o);});
     S.mcver=vers[0];sel.value=vers[0];
     $('#verHint').textContent=(/^26\./.test(S.mcver))?'Heads up: 26.x needs Java 25 installed to run.':'Pick the version you and your friends play on. This list updates itself.';
     render();
