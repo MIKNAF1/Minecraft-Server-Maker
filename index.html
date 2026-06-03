@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+<head>
+<script>document.documentElement.classList.add('js')</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BlockForge — set up a Minecraft server the easy way</title>
+<meta name="description" content="Set up a ready-to-run Minecraft server in a few steps. No file renaming, no editing eula.txt. Add any plugin or mod from Modrinth and a custom server icon before you download." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Figtree:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#0a0f1f; --bg2:#0c1430; --panel:#131d3b; --panel2:#101830;
+  --card:rgba(22,31,60,.86); --card-top:rgba(255,255,255,.045);
+  --text:#eef2ff; --muted:#94a1c8; --line:#283566; --line-soft:rgba(255,255,255,.07);
+  --amber:#f6a623; --amber2:#e7791b; --ink:#14100a;
+  --cool:#56b6ff; --good:#4cd483; --bad:#ff6b81;
+  --radius:16px; --radius-lg:24px;
+  --shadow:0 24px 64px rgba(0,0,0,.5); --shadow-sm:0 10px 26px rgba(0,0,0,.32);
+  --focus:0 0 0 3px rgba(246,166,35,.38);
+  --glowA:rgba(231,121,27,.18); --glowB:rgba(86,182,255,.12);
+  --fd:"Baloo 2",ui-sans-serif,system-ui,sans-serif; --fb:"Figtree",ui-sans-serif,system-ui,sans-serif; --fm:"Space Mono",ui-monospace,monospace;
+}
+html[data-theme="day"]{
+  --bg:#eef3fc; --bg2:#e6edf9; --panel:#ffffff; --panel2:#f3f6fe;
+  --card:rgba(255,255,255,.95); --card-top:rgba(255,255,255,.9);
+  --text:#101830; --muted:#5a6488; --line:#d6def0; --line-soft:rgba(16,24,48,.06);
+  --amber:#e08612; --amber2:#c85f0c; --ink:#fff;
+  --cool:#0d83cc; --good:#1aa657;
+  --shadow:0 24px 58px rgba(30,40,90,.13); --shadow-sm:0 10px 24px rgba(30,40,90,.1);
+  --focus:0 0 0 3px rgba(224,134,18,.28);
+  --glowA:rgba(224,134,18,.12); --glowB:rgba(13,131,204,.1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--fb);color:var(--text);line-height:1.6;font-size:16px;min-height:100vh;position:relative;
+  background-color:var(--bg);
+  background-image:
+   radial-gradient(1100px 600px at 85% -8%,var(--glowA),transparent 58%),
+   radial-gradient(900px 560px at 2% 6%,var(--glowB),transparent 52%),
+   linear-gradient(180deg,var(--bg) 0%,var(--bg2) 60%,var(--bg) 100%);
+  background-attachment:fixed}
+/* faint starfield, night only */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='24' cy='38' r='1'/%3E%3Ccircle cx='140' cy='90' r='1'/%3E%3Ccircle cx='210' cy='46' r='1.3'/%3E%3Ccircle cx='72' cy='170' r='1'/%3E%3Ccircle cx='236' cy='214' r='1'/%3E%3Ccircle cx='104' cy='230' r='1.2'/%3E%3Ccircle cx='180' cy='150' r='1'/%3E%3Ccircle cx='40' cy='118' r='1'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:260px 260px}
+html[data-theme="day"] body::before{opacity:0}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;text-decoration:none;border:1px solid var(--line);
+  font-family:var(--fd);font-weight:700;font-size:16px;padding:13px 22px;border-radius:13px;color:var(--text);
+  background:color-mix(in srgb,var(--panel) 82%,transparent);transition:.13s}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{color:var(--ink);background:linear-gradient(180deg,var(--amber),var(--amber2));border-color:color-mix(in srgb,var(--amber2) 70%,#000);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.2),0 8px 22px rgba(231,121,27,.25)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.05)}
+.btn.ghost:hover{border-color:color-mix(in srgb,var(--amber) 45%,var(--line));background:color-mix(in srgb,var(--amber) 9%,transparent)}
+.btn.sm{padding:10px 16px;font-size:15px}
+
+/* logo mark */
+.mark{width:38px;height:38px;border-radius:10px;flex:none;background:linear-gradient(180deg,#1b2747,#111a33);border:1px solid var(--line);
+  display:grid;place-items:center;box-shadow:0 0 20px var(--glowA)}
+.mark svg{display:block}
+
+header.nav{position:sticky;top:0;z-index:60;backdrop-filter:blur(14px);background:color-mix(in srgb,var(--bg) 80%,transparent);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.brand b{font-family:var(--fd);font-weight:800;font-size:20px;letter-spacing:-.3px}
+.brand b span{color:var(--amber)}
+.nav-actions{display:flex;gap:10px;align-items:center}
+.toggle{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:11px;cursor:pointer;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 72%,transparent);color:var(--text);font-weight:700;font-family:var(--fb)}
+.toggle .dot{width:11px;height:11px;border-radius:4px;background:var(--amber)}
+
+/* hero */
+.hero{position:relative;overflow:hidden}
+.hero .wrap{padding:62px 20px 30px;text-align:center;position:relative;z-index:2}
+.kick{display:inline-block;font-family:var(--fm);font-size:11px;letter-spacing:1px;color:var(--amber);
+  border:1px solid color-mix(in srgb,var(--amber) 38%,var(--line));background:color-mix(in srgb,var(--amber) 9%,transparent);padding:7px 14px;border-radius:999px;margin-bottom:22px}
+.hero h1{font-family:var(--fd);font-weight:800;font-size:clamp(34px,5.4vw,58px);line-height:1.05;margin:0 auto 16px;max-width:17ch;letter-spacing:-1px}
+.hero h1 em{font-style:normal;color:var(--amber)}
+.hero p.sub{color:var(--muted);font-size:18px;max-width:56ch;margin:0 auto}
+.chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+.chip{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;padding:9px 15px;border-radius:999px;
+  border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 58%,transparent)}
+.tick{width:16px;height:16px;flex:none;border-radius:5px;background:color-mix(in srgb,var(--good) 22%,transparent);border:1px solid color-mix(in srgb,var(--good) 50%,var(--line));position:relative}
+.tick::after{content:"";position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid var(--good);border-width:0 2px 2px 0;transform:rotate(45deg)}
+/* blocky horizon */
+.horizon{position:absolute;left:0;right:0;bottom:-1px;height:120px;z-index:1;opacity:.55;pointer-events:none}
+html[data-theme="day"] .horizon{opacity:.35}
+
+.ad{margin:24px auto;max-width:1180px;border:1px dashed color-mix(in srgb,var(--line) 90%,transparent);border-radius:var(--radius);padding:18px;text-align:center;
+  background:color-mix(in srgb,var(--panel) 46%,transparent);color:var(--muted);min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.ad .lbl{font-family:var(--fm);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;padding:3px 10px;border:1px solid var(--line);border-radius:999px}
+.ad .note{margin:0;font-size:12px}
+
+.builder{padding:6px 0 30px}
+.bgrid{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+
+.rail{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+.rstep{flex:1;min-width:118px;display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 55%,transparent);cursor:pointer;transition:.15s}
+.rstep .n{width:26px;height:26px;flex:none;border-radius:8px;display:grid;place-items:center;font-family:var(--fm);font-size:13px;font-weight:700;
+  background:color-mix(in srgb,var(--panel) 90%,transparent);color:var(--muted);border:1px solid var(--line)}
+.rstep .t{font-weight:700;font-size:13.5px;color:var(--muted);line-height:1.2}
+.rstep.active{border-color:color-mix(in srgb,var(--amber) 55%,var(--line));background:color-mix(in srgb,var(--amber) 11%,transparent)}
+.rstep.active .n{background:linear-gradient(180deg,var(--amber),var(--amber2));color:var(--ink)}
+.rstep.active .t{color:var(--text)}
+.rstep.done .n{background:var(--good);color:#04240f}
+
+.stage{border:1px solid var(--line);border-radius:var(--radius-lg);padding:26px;background:linear-gradient(180deg,var(--card-top),transparent 12%),var(--card);
+  box-shadow:var(--shadow);backdrop-filter:blur(10px);min-height:430px}
+.step{display:none}
+.step.show{display:block;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.step h2{font-family:var(--fd);font-weight:800;font-size:25px;margin:0 0 5px;letter-spacing:-.3px}
+.step .lead{color:var(--muted);margin:0 0 22px;font-size:15.5px}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.opt{position:relative;border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;background:color-mix(in srgb,var(--bg) 45%,var(--panel));transition:.14s}
+.opt:hover{border-color:color-mix(in srgb,var(--amber) 38%,var(--line))}
+.opt.sel{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 11%,transparent);box-shadow:inset 0 0 0 1px var(--amber)}
+.opt .oh{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.opt h4{font-family:var(--fd);font-weight:800;font-size:20px;margin:0}
+.opt .badge{margin-left:auto;font-family:var(--fm);font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink);
+  background:linear-gradient(180deg,var(--amber),var(--amber2));padding:3px 9px;border-radius:999px}
+.opt p{margin:0;color:var(--muted);font-size:13.5px}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.fld{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.fld label{font-weight:800;font-size:14px}
+.fld .help{font-size:12px;color:var(--muted)}
+.fld input[type=text],.fld input[type=number],.fld select{font:inherit;color:var(--text);padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--bg) 50%,var(--panel));outline:none;transition:.14s;width:100%}
+.fld input:focus,.fld select:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--amber) 55%,var(--line))}
+.pills{display:flex;gap:9px;flex-wrap:wrap}
+.pill{cursor:pointer;font-weight:700;font-size:14px;padding:10px 15px;border-radius:11px;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 45%,var(--panel));transition:.13s}
+.pill:hover{border-color:color-mix(in srgb,var(--amber) 38%,var(--line))}
+.pill.sel{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 13%,transparent)}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.sw{width:34px;height:34px;border-radius:9px;cursor:pointer;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);transition:.12s}
+.sw:hover{transform:translateY(-2px)}
+.sw.sel{border-color:var(--text);transform:scale(1.1)}
+
+.iconcard{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:16px;
+  background:color-mix(in srgb,var(--bg) 45%,var(--panel))}
+.iconcard-body{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px}
+.iconcard-btns{display:flex;gap:9px;flex-wrap:wrap}
+.iconpreview{width:76px;height:76px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 50%,var(--panel));
+  display:grid;place-items:center;overflow:hidden;image-rendering:pixelated;color:var(--muted);font-size:11px;text-align:center}
+.iconpreview img{width:100%;height:100%;image-rendering:pixelated}
+
+/* add-ons */
+.addgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.addon{display:flex;align-items:flex-start;gap:11px;border:1px solid var(--line);border-radius:12px;padding:12px 13px;cursor:pointer;transition:.13s;
+  background:color-mix(in srgb,var(--bg) 45%,var(--panel))}
+.addon:hover{border-color:color-mix(in srgb,var(--amber) 36%,var(--line))}
+.addon.sel{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 9%,transparent)}
+.addon .box{width:22px;height:22px;flex:none;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;margin-top:1px;font-weight:900;color:var(--ink);font-size:13px;background:color-mix(in srgb,var(--bg) 55%,var(--panel))}
+.addon.sel .box{background:linear-gradient(180deg,var(--amber),var(--amber2));border-color:transparent}
+.addon h4{font-family:var(--fd);font-weight:700;margin:0;font-size:15px}
+.addon p{margin:1px 0 0;color:var(--muted);font-size:12.5px;line-height:1.45}
+
+.searchwrap{position:relative}
+.results{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:300px;overflow:auto}
+.res{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:color-mix(in srgb,var(--bg) 45%,var(--panel))}
+.res img,.res .ph{width:38px;height:38px;flex:none;border-radius:8px;object-fit:cover;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line)}
+.res .mid{flex:1;min-width:0}
+.res .mid h5{margin:0;font-family:var(--fd);font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .mid p{margin:1px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .dl{font-family:var(--fm);font-size:11px;color:var(--muted)}
+.addbtn{font-family:var(--fd);font-weight:700;font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 50%,var(--panel));color:var(--text)}
+.addbtn.added{background:var(--good);color:#04240f;border-color:transparent}
+.chips2{display:flex;gap:8px;flex-wrap:wrap}
+.tagx{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:7px 11px;border-radius:999px;border:1px solid color-mix(in srgb,var(--amber) 38%,var(--line));background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.tagx b{cursor:pointer;color:var(--muted);font-weight:900}
+
+.callout{border:1px solid color-mix(in srgb,var(--amber) 40%,var(--line));border-left:5px solid var(--amber);border-radius:12px;padding:14px 15px;background:color-mix(in srgb,var(--amber) 8%,var(--card));margin:14px 0}
+.callout.good{border-color:color-mix(in srgb,var(--good) 45%,var(--line));border-left-color:var(--good);background:color-mix(in srgb,var(--good) 9%,var(--card))}
+.callout strong{font-family:var(--fd)}
+code{font-family:var(--fm);font-size:.84em;padding:2px 7px;border-radius:6px;color:var(--amber);border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 50%,var(--panel))}
+
+.eula{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:13px;padding:15px;background:color-mix(in srgb,var(--bg) 45%,var(--panel));cursor:pointer;margin:6px 0 18px}
+.eula input{margin-top:3px;width:20px;height:20px;accent-color:var(--amber)}
+.eula div{font-size:14px}
+.eula a{color:var(--amber);font-weight:700}
+
+.nav-btns{display:flex;justify-content:space-between;gap:12px;margin-top:24px}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin:6px 0 8px}
+.summary div{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px dashed var(--line-soft);font-size:14.5px}
+.summary span:first-child{color:var(--muted)}
+.status{margin-top:14px;min-height:20px;color:var(--amber);font-weight:700;font-size:14px}
+
+.preview{position:sticky;top:86px}
+.pv-card{border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;background:linear-gradient(180deg,var(--card-top),transparent 12%),var(--card);box-shadow:var(--shadow)}
+.pv-title{font-family:var(--fm);font-size:11px;letter-spacing:1px;color:var(--muted);margin-bottom:14px;text-align:center}
+.mc-list{font-family:var(--fm);border:1px solid var(--line);border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#1b1b2a,#11111c)}
+.mc-row{display:flex;gap:12px;padding:12px;align-items:center}
+.mc-icon{width:54px;height:54px;flex:none;border-radius:4px;background:#2a2a3a;display:grid;place-items:center;overflow:hidden;image-rendering:pixelated}
+.mc-icon img{width:100%;height:100%;image-rendering:pixelated}
+.mc-mid{flex:1;min-width:0}
+.mc-name{color:#fff;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-motd{color:#b9bdce;font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.mc-players{color:#9aa0b5;font-size:11px}
+.bars{display:flex;gap:2px;align-items:flex-end;height:13px}
+.bars i{width:4px;background:#3ad15a;border-radius:1px;display:block}
+.pv-meta{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.pv-meta .m{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.pv-meta .m b{color:var(--text);font-weight:700}
+.pv-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pv-tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--amber) 35%,var(--line));background:color-mix(in srgb,var(--amber) 9%,transparent)}
+
+footer.foot{border-top:1px solid var(--line);margin-top:24px;padding:32px 0 44px;color:var(--muted)}
+.foot small{display:block;margin-top:12px;font-size:12.5px;opacity:.85}
+
+@media(max-width:920px){.bgrid{grid-template-columns:1fr}.preview{position:static}.opts,.addgrid,.row{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="nav"><div class="wrap nav-in">
+  <a class="brand" href="#top">
+    <span class="mark"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1l8 4.5v9L10 19l-8-4.5v-9z" fill="none" stroke="#f6a623" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 1v18M2 5.5l8 4.5 8-4.5" fill="none" stroke="#56b6ff" stroke-width="1.1" stroke-linejoin="round" opacity=".8"/></svg></span>
+    <b>Block<span>Forge</span></b>
+  </a>
+  <div class="nav-actions">
+    <button class="toggle" id="themeToggle" type="button"><span class="dot"></span><span id="themeLabel">Night</span></button>
+    <a class="btn primary sm" href="#build">Start building</a>
+  </div>
+</div></header>
+
+<div id="top" class="hero">
+  <div class="wrap">
+    <span class="kick">NO RENAMING · NO EULA EDITING · JUST RUN IT</span>
+    <h1>Set up a <em>Minecraft server</em> without the usual hassle.</h1>
+    <p class="sub">Pick a few options and download a folder that runs as-is. Unzip it, open the start file, and you are online. Add plugins, mods and your own icon along the way.</p>
+    <div class="chips">
+      <span class="chip"><span class="tick"></span> No file renaming</span>
+      <span class="chip"><span class="tick"></span> Any plugin or mod from Modrinth</span>
+      <span class="chip"><span class="tick"></span> Custom server icon</span>
+      <span class="chip"><span class="tick"></span> Free, no account</span>
+    </div>
+  </div>
+  <svg class="horizon" viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="#0a0f1f" d="M0,120 L0,70 L80,70 L80,55 L180,55 L180,72 L300,72 L300,48 L420,48 L420,64 L520,64 L520,40 L640,40 L640,60 L760,60 L760,52 L880,52 L880,68 L1000,68 L1000,46 L1120,46 L1120,66 L1200,66 L1200,120 Z"/></svg>
+</div>
+
+<div class="ad"><span class="lbl">Advertisement</span><p class="note">Ad space — keeps BlockForge free. Paste your ad code here.</p></div>
+
+<div id="build" class="builder"><div class="wrap">
+  <div class="rail" id="rail">
+    <div class="rstep active" data-go="0"><span class="n">1</span><span class="t">Server type</span></div>
+    <div class="rstep" data-go="1"><span class="n">2</span><span class="t">Basics</span></div>
+    <div class="rstep" data-go="2"><span class="n">3</span><span class="t">Appearance</span></div>
+    <div class="rstep" data-go="3"><span class="n">4</span><span class="t">Plugins &amp; mods</span></div>
+    <div class="rstep" data-go="4"><span class="n">5</span><span class="t">Download</span></div>
+  </div>
+
+  <div class="bgrid">
+    <div class="stage">
+
+      <!-- STEP 1 -->
+      <section class="step show" data-step="0">
+        <h2>Choose your server software</h2>
+        <p class="lead">If you are not sure, pick Paper. It is the most common choice and it supports plugins.</p>
+        <div class="opts" id="typeOpts">
+          <div class="opt sel" data-sw="paper"><div class="oh"><h4>Paper</h4><span class="badge">Recommended</span></div><p>Fast and stable, runs Bukkit/Spigot plugins. Best all-rounder for survival and minigames.</p></div>
+          <div class="opt" data-sw="vanilla"><div class="oh"><h4>Vanilla</h4></div><p>The official server with no changes. No plugins or mods — pure Minecraft.</p></div>
+          <div class="opt" data-sw="fabric"><div class="oh"><h4>Fabric</h4></div><p>Lightweight modding. Friends need the same mods installed to join.</p></div>
+          <div class="opt" data-sw="forge"><div class="oh"><h4>Forge</h4></div><p>The classic modding platform for large modpacks. Friends need the same mods.</p></div>
+        </div>
+        <div class="fld" style="margin-top:20px">
+          <label>Minecraft version</label>
+          <select id="mcver">
+            <option value="26.1.2" selected>26.1.2 — latest</option>
+            <option value="26.1.1">26.1.1</option>
+            <option value="26.1">26.1 (Tiny Takeover)</option>
+            <option value="1.21.11">1.21.11</option>
+            <option value="1.21.10">1.21.10</option>
+            <option value="1.21.9">1.21.9</option>
+            <option value="1.21.4">1.21.4</option>
+            <option value="1.20.6">1.20.6</option>
+            <option value="1.20.1">1.20.1</option>
+          </select>
+          <span class="help" id="verHint">Pick the version you and your friends play on.</span>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="step" data-step="1">
+        <h2>The basics</h2>
+        <p class="lead">Sensible defaults are already set. Only change what you want to.</p>
+        <div class="fld">
+          <label>Memory (RAM)</label>
+          <div class="pills" id="ramPills">
+            <span class="pill" data-ram="2">2 GB</span>
+            <span class="pill sel" data-ram="4">4 GB</span>
+            <span class="pill" data-ram="6">6 GB</span>
+            <span class="pill" data-ram="8">8 GB</span>
+            <span class="pill" data-ram="custom">Custom…</span>
+          </div>
+          <div id="ramCustomRow" style="display:none;margin-top:10px;max-width:220px">
+            <input id="ramCustom" type="number" min="1" max="64" value="16" />
+          </div>
+          <span class="help">A rough guide: keep this under about 60% of your computer's total RAM.</span>
+        </div>
+        <div class="row">
+          <div class="fld"><label>Max players</label><input id="maxPlayers" type="number" min="1" max="500" value="10" /></div>
+          <div class="fld"><label>Port</label><input id="port" type="number" min="1" max="65535" value="25565" /><span class="help">Leave as-is unless you have a reason.</span></div>
+        </div>
+        <div class="fld">
+          <label>Gamemode</label>
+          <div class="pills" id="gmPills">
+            <span class="pill sel" data-gm="survival">Survival</span><span class="pill" data-gm="creative">Creative</span>
+            <span class="pill" data-gm="adventure">Adventure</span><span class="pill" data-gm="spectator">Spectator</span>
+          </div>
+        </div>
+        <div class="fld">
+          <label>Difficulty</label>
+          <div class="pills" id="diffPills">
+            <span class="pill" data-diff="peaceful">Peaceful</span><span class="pill" data-diff="easy">Easy</span>
+            <span class="pill sel" data-diff="normal">Normal</span><span class="pill" data-diff="hard">Hard</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="fld"><label>Who can join</label>
+            <div class="pills" id="wlPills"><span class="pill sel" data-wl="false">Anyone</span><span class="pill" data-wl="true">Whitelist only</span></div>
+          </div>
+          <div class="fld"><label>Account type</label>
+            <div class="pills" id="authPills"><span class="pill sel" data-auth="official">Official accounts</span><span class="pill" data-auth="offline">Cracked (offline)</span></div>
+            <span class="help">Cracked lets non-premium accounts in. Use it only for private or LAN play — it is less secure.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section class="step" data-step="2">
+        <h2>Appearance</h2>
+        <p class="lead">This is what players see in their server list. It updates on the right as you type.</p>
+        <div class="fld"><label>Server name (top line)</label><input id="motd" type="text" maxlength="40" value="My Server" /></div>
+        <div class="fld"><label>Second line (optional)</label><input id="motd2" type="text" maxlength="40" value="Come and build with us" /></div>
+        <div class="fld">
+          <label>Name colour</label>
+          <div class="swatches" id="swatches"></div>
+          <span class="help">The colour of the top line in the list.</span>
+        </div>
+        <div class="fld">
+          <label>Server icon</label>
+          <div class="iconcard">
+            <div class="iconpreview" id="iconPrev">no icon</div>
+            <div class="iconcard-body">
+              <input id="iconFile" type="file" accept="image/*" style="display:none" />
+              <div class="iconcard-btns">
+                <button class="btn ghost sm" id="iconBtn" type="button">Upload image</button>
+                <button class="btn ghost sm" id="iconClear" type="button" style="display:none">Remove</button>
+              </div>
+              <div class="help">Any square-ish image works best. We crop it to the 64×64 PNG that Minecraft uses for the server icon.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4 -->
+      <section class="step" data-step="3">
+        <h2 id="addonTitle">Plugins &amp; mods</h2>
+        <p class="lead" id="addonLead">Tick a few popular ones, or search Modrinth for anything else. We add a one-click installer to your download.</p>
+
+        <div id="popularWrap">
+          <label style="font-weight:800;font-size:14px;display:block;margin-bottom:8px">Popular picks</label>
+          <div class="addgrid" id="addonList"></div>
+        </div>
+
+        <div class="fld searchwrap" style="margin-top:14px">
+          <label>Search Modrinth</label>
+          <input id="searchBox" type="text" placeholder="Try: tpa, economy, worldedit, shops, vehicles, claims…" autocomplete="off" />
+          <span class="help">Live results from Modrinth. Add anything you like — it goes into the installer.</span>
+          <div class="results" id="searchResults"></div>
+        </div>
+
+        <div class="fld">
+          <label>Your add-ons (<span id="selCount">0</span>)</label>
+          <div class="chips2" id="selectedChips"><span class="help">Nothing selected yet.</span></div>
+        </div>
+
+        <div class="callout" id="addonNote"><strong>How install works.</strong> Your download includes <code>install-addons</code>. Run it once and it pulls everything you picked from Modrinth into the right folder. Needs an internet connection, like any download.</div>
+      </section>
+
+      <!-- STEP 5 -->
+      <section class="step" data-step="4">
+        <h2>Download your server</h2>
+        <p class="lead">Here is what you set up. Accept the licence, then download.</p>
+        <div class="summary" id="summary"></div>
+        <div class="callout good"><strong>No renaming, no eula.txt editing.</strong> Unzip the folder and open <code>Start</code> (Windows) or <code>start.command</code> (Mac). The start file finds your server file on its own.</div>
+        <label class="eula">
+          <input type="checkbox" id="eulaCheck" />
+          <div>I accept the <a href="https://aka.ms/MinecraftEULA" target="_blank" rel="noopener">Minecraft End User Licence Agreement</a>. <span class="muted">Required. This sets <code>eula=true</code> for you.</span></div>
+        </label>
+        <button class="btn primary" id="downloadZip" type="button" disabled>Download my server</button>
+        <div class="status" id="status" aria-live="polite"></div>
+      </section>
+
+      <div class="nav-btns">
+        <button class="btn ghost" id="backBtn" type="button" style="visibility:hidden">Back</button>
+        <button class="btn primary" id="nextBtn" type="button">Next</button>
+      </div>
+    </div>
+
+    <!-- LIVE PREVIEW -->
+    <aside class="preview"><div class="pv-card">
+      <div class="pv-title">YOUR SERVER, LIVE PREVIEW</div>
+      <div class="mc-list"><div class="mc-row">
+        <div class="mc-icon" id="pvIcon"></div>
+        <div class="mc-mid"><div class="mc-name" id="pvName">My Server</div><div class="mc-motd" id="pvMotd">Come and build with us</div></div>
+        <div class="mc-right">
+          <div class="bars"><i style="height:4px"></i><i style="height:7px"></i><i style="height:10px"></i><i style="height:13px"></i><i style="height:13px"></i></div>
+          <div class="mc-players" id="pvPlayers">0 / 10</div>
+        </div>
+      </div></div>
+      <div class="pv-meta">
+        <div class="m"><span>Software</span><b id="pvType">Paper</b></div>
+        <div class="m"><span>Version</span><b id="pvVer">26.1.2</b></div>
+        <div class="m"><span>Memory</span><b id="pvRam">4 GB</b></div>
+        <div class="m"><span>Mode</span><b id="pvMode">Survival · Normal</b></div>
+      </div>
+      <div class="pv-tags" id="pvTags"></div>
+    </div></aside>
+  </div>
+</div></div>
+
+<div class="ad"><span class="lbl">Advertisement</span><p class="note">Ad space — paste your ad code here.</p></div>
+
+<footer class="foot"><div class="wrap">
+  <a class="brand" href="#top"><span class="mark"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1l8 4.5v9L10 19l-8-4.5v-9z" fill="none" stroke="#f6a623" stroke-width="1.4" stroke-linejoin="round"/></svg></span><b>Block<span>Forge</span></b></a>
+  <small>Generates configs and helper scripts only — never Minecraft binaries. Server files come from PaperMC; add-ons come from Modrinth. Not affiliated with Mojang Studios or Microsoft.</small>
+</div></footer>
+
+<script>
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+
+(function(){var root=document.documentElement,lab=$('#themeLabel');
+  $('#themeToggle').addEventListener('click',function(){var n=root.getAttribute('data-theme')==='day'?'night':'day';root.setAttribute('data-theme',n);lab.textContent=n==='night'?'Night':'Day';});})();
+
+var S={sw:'paper',mcver:'26.1.2',ram:4,ramMode:4,maxPlayers:10,port:25565,gm:'survival',diff:'normal',wl:'false',auth:'official',
+  motd:'My Server',motd2:'Come and build with us',color:'§a',icon:null,iconURL:null,addons:{}};
+
+var COLORS=[['§f','#ffffff'],['§a','#55ff55'],['§e','#ffff55'],['§6','#ffaa00'],['§b','#55ffff'],['§d','#ff55ff'],['§c','#ff5555'],['§9','#5555ff'],['§2','#00aa00'],['§7','#aaaaaa']];
+(function(){var w=$('#swatches');COLORS.forEach(function(c){var el=document.createElement('span');el.className='sw'+(c[0]===S.color?' sel':'');el.style.background=c[1];
+  el.addEventListener('click',function(){S.color=c[0];$$('.sw').forEach(function(x){x.classList.remove('sel')});el.classList.add('sel');render();});w.appendChild(el);});})();
+
+/* curated popular picks (real Modrinth slugs; installer skips any with no build) */
+var CATALOG={
+  paper:[
+    {slug:'viaversion',name:'ViaVersion',desc:'Let players on other versions join.',on:true},
+    {slug:'essentialsx',name:'EssentialsX',desc:'/home, /tpa, /warp, /kit and more.',on:true},
+    {slug:'luckperms',name:'LuckPerms',desc:'Ranks and permissions.'},
+    {slug:'worldedit',name:'WorldEdit',desc:'Build and edit huge areas fast.'},
+    {slug:'coreprotect',name:'CoreProtect',desc:'Log and roll back griefing.'},
+    {slug:'chunky',name:'Chunky',desc:'Pre-generate the world to cut lag.'},
+    {slug:'spark',name:'spark',desc:'Find what is causing lag.'},
+    {slug:'geyser',name:'Geyser',desc:'Let Bedrock (mobile/console) players join.'}
+  ],
+  fabric:[
+    {slug:'fabric-api',name:'Fabric API',desc:'Required by most Fabric mods.',on:true},
+    {slug:'lithium',name:'Lithium',desc:'Big performance boost.',on:true},
+    {slug:'ferrite-core',name:'FerriteCore',desc:'Uses less memory.'},
+    {slug:'spark',name:'spark',desc:'Find lag sources.'},
+    {slug:'chunky',name:'Chunky',desc:'Pre-generate the world.'}
+  ],
+  forge:[
+    {slug:'ferrite-core',name:'FerriteCore',desc:'Uses less memory.',on:true},
+    {slug:'spark',name:'spark',desc:'Find lag sources.'},
+    {slug:'chunky',name:'Chunky',desc:'Pre-generate the world.'}
+  ],
+  vanilla:[]
+};
+
+function buildAddons(){
+  var list=$('#addonList'), items=CATALOG[S.sw]||[];
+  S.addons={};
+  $('#addonTitle').textContent=(S.sw==='vanilla')?'Add-ons':(S.sw==='paper')?'Plugins':'Mods';
+  if(items.length===0){
+    $('#popularWrap').style.display='none';$('#addonNote').style.display='none';
+    $('#searchResults').innerHTML='';$('#searchBox').closest('.fld').style.display='none';
+  }else{
+    $('#popularWrap').style.display='';$('#addonNote').style.display='';$('#searchBox').closest('.fld').style.display='';
+    list.innerHTML='';
+    items.forEach(function(it){
+      if(it.on)S.addons[it.slug]={name:it.name,on:true};
+      var d=document.createElement('div');d.className='addon'+(it.on?' sel':'');
+      d.innerHTML='<div class="box">'+(it.on?'✓':'')+'</div><div><h4>'+it.name+'</h4><p>'+it.desc+'</p></div>';
+      d.addEventListener('click',function(){toggleAddon(it.slug,it.name);
+        d.classList.toggle('sel',!!(S.addons[it.slug]&&S.addons[it.slug].on));$('.box',d).textContent=(S.addons[it.slug]&&S.addons[it.slug].on)?'✓':'';});
+      list.appendChild(d);
+    });
+  }
+  if(S.sw==='vanilla'){
+    $('#addonLead').textContent='Pure Vanilla doesn\u2019t use plugins or mods, so you can skip ahead. (You can still add datapacks later in world/datapacks.)';
+  }else{
+    $('#addonLead').textContent='Tick a few popular ones, or search Modrinth for anything else. We add a one-click installer to your download.';
+  }
+  renderSelected();
+}
+function toggleAddon(slug,name){
+  if(S.addons[slug]&&S.addons[slug].on){delete S.addons[slug];}
+  else{S.addons[slug]={name:name||slug,on:true};}
+  renderSelected();render();
+}
+function renderSelected(){
+  var keys=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
+  $('#selCount').textContent=keys.length;
+  var box=$('#selectedChips');
+  if(!keys.length){box.innerHTML='<span class="help">Nothing selected yet.</span>';return;}
+  box.innerHTML=keys.map(function(k){return '<span class="tagx">'+S.addons[k].name+' <b data-rm="'+k+'">×</b></span>';}).join('');
+  $$('#selectedChips [data-rm]').forEach(function(b){b.addEventListener('click',function(){
+    var k=b.getAttribute('data-rm');delete S.addons[k];
+    // also untick any matching popular card
+    $$('#addonList .addon').forEach(function(d){if($('h4',d)&&CATALOG[S.sw]){CATALOG[S.sw].forEach(function(it){if(it.slug===k){d.classList.remove('sel');$('.box',d).textContent='';}});}});
+    renderSelected();render();});});
+}
+
+/* live Modrinth search */
+var searchTimer=null;
+function loaderFacet(){
+  if(S.sw==='paper')return '[["categories:paper","categories:bukkit","categories:spigot","categories:purpur","categories:folia"]]';
+  if(S.sw==='fabric')return '[["categories:fabric"]]';
+  if(S.sw==='forge')return '[["categories:forge","categories:neoforge"]]';
+  return '[]';
+}
+function doSearch(q){
+  var box=$('#searchResults');
+  if(!q||q.length<2){box.innerHTML='';return;}
+  box.innerHTML='<div class="help" style="padding:6px">Searching Modrinth…</div>';
+  var url='https://api.modrinth.com/v2/search?limit=15&index=relevance&query='+encodeURIComponent(q)+'&facets='+encodeURIComponent(loaderFacet());
+  fetch(url).then(function(r){return r.json();}).then(function(j){
+    var hits=(j&&j.hits)||[];
+    if(!hits.length){box.innerHTML='<div class="help" style="padding:6px">No matches. Try another word.</div>';return;}
+    box.innerHTML='';
+    hits.forEach(function(h){
+      var added=!!(S.addons[h.slug]&&S.addons[h.slug].on);
+      var dls=h.downloads>=1000000?(Math.round(h.downloads/100000)/10)+'M':h.downloads>=1000?Math.round(h.downloads/1000)+'k':h.downloads;
+      var el=document.createElement('div');el.className='res';
+      el.innerHTML=(h.icon_url?'<img src="'+h.icon_url+'" alt="">':'<div class="ph"></div>')+
+        '<div class="mid"><h5>'+escapeHtml(h.title)+'</h5><p>'+escapeHtml(h.description||'')+'</p></div>'+
+        '<div style="text-align:right"><div class="dl">'+dls+' dl</div><button class="addbtn'+(added?' added':'')+'">'+(added?'Added':'Add')+'</button></div>';
+      $('.addbtn',el).addEventListener('click',function(){
+        toggleAddon(h.slug,h.title);
+        var on=!!(S.addons[h.slug]&&S.addons[h.slug].on);
+        this.textContent=on?'Added':'Add';this.classList.toggle('added',on);
+      });
+      box.appendChild(el);
+    });
+  }).catch(function(){box.innerHTML='<div class="help" style="padding:6px">Could not reach Modrinth (check your connection). Popular picks above still work.</div>';});
+}
+$('#searchBox').addEventListener('input',function(){var q=this.value.trim();clearTimeout(searchTimer);searchTimer=setTimeout(function(){doSearch(q);},350);});
+function escapeHtml(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+/* pills */
+function bindPills(sel,key,attr,cb){$$(sel+' .pill').forEach(function(p){p.addEventListener('click',function(){
+  $$(sel+' .pill').forEach(function(x){x.classList.remove('sel')});p.classList.add('sel');S[key]=p.getAttribute(attr);if(cb)cb(p);render();});});}
+bindPills('#ramPills','ramMode','data-ram',function(p){
+  if(p.getAttribute('data-ram')==='custom'){$('#ramCustomRow').style.display='';S.ram=clampInt($('#ramCustom').value,1,64,16);}
+  else{$('#ramCustomRow').style.display='none';S.ram=parseInt(p.getAttribute('data-ram'),10);}
+});
+$('#ramCustom').addEventListener('input',function(){S.ram=clampInt(this.value,1,64,16);render();});
+bindPills('#gmPills','gm','data-gm');bindPills('#diffPills','diff','data-diff');bindPills('#wlPills','wl','data-wl');bindPills('#authPills','auth','data-auth');
+
+$$('#typeOpts .opt').forEach(function(o){o.addEventListener('click',function(){
+  $$('#typeOpts .opt').forEach(function(x){x.classList.remove('sel')});o.classList.add('sel');
+  S.sw=o.getAttribute('data-sw');buildAddons();$('#searchResults').innerHTML='';$('#searchBox').value='';render();});});
+
+['mcver','maxPlayers','port','motd','motd2'].forEach(function(id){var e=$('#'+id);if(e)e.addEventListener('input',function(){S[id]=e.value;
+  if(id==='mcver'){$('#verHint').textContent=(/^26\./.test(e.value))?'Heads up: 26.x needs Java 25 installed to run.':'Pick the version you and your friends play on.';}render();});});
+
+/* icon — convert to a 64x64 PNG and store bytes synchronously (no async race) */
+function dataURLToBytes(dataURL){
+  var base64=dataURL.split(',')[1];var bin=atob(base64);var len=bin.length;var bytes=new Uint8Array(len);
+  for(var i=0;i<len;i++)bytes[i]=bin.charCodeAt(i);return bytes;
+}
+$('#iconBtn').addEventListener('click',function(){$('#iconFile').click();});
+$('#iconFile').addEventListener('change',function(e){
+  var f=e.target.files[0];if(!f)return;
+  if(!/^image\//.test(f.type)){alert('Please choose an image file (png, jpg, gif…).');return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas');c.width=64;c.height=64;var x=c.getContext('2d');
+      x.clearRect(0,0,64,64);
+      var s=Math.min(img.width,img.height),sx=(img.width-s)/2,sy=(img.height-s)/2;
+      x.drawImage(img,sx,sy,s,s,0,0,64,64);
+      try{
+        S.iconURL=c.toDataURL('image/png');
+        S.icon=dataURLToBytes(S.iconURL);   // bytes ready immediately
+      }catch(err){alert('Could not read that image. Try a different file.');return;}
+      $('#iconClear').style.display='';render();
+    };
+    img.onerror=function(){alert('That image could not be loaded. Try a PNG or JPG.');};
+    img.src=ev.target.result;
+  };
+  reader.onerror=function(){alert('Could not read the file. Try again.');};
+  reader.readAsDataURL(f);
+});
+$('#iconClear').addEventListener('click',function(){S.icon=null;S.iconURL=null;$('#iconFile').value='';$('#iconClear').style.display='none';render();});
+
+var SWNAME={paper:'Paper',vanilla:'Vanilla',fabric:'Fabric',forge:'Forge'};
+function colorHex(code){for(var i=0;i<COLORS.length;i++)if(COLORS[i][0]===code)return COLORS[i][1];return '#fff';}
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s;}
+function clampInt(n,min,max,fb){var x=parseInt(n,10);if(isNaN(x))return fb;return Math.min(max,Math.max(min,x));}
+
+function render(){
+  $('#pvName').textContent=S.motd||'My Server';$('#pvName').style.color=colorHex(S.color);
+  $('#pvMotd').textContent=S.motd2||'';$('#pvPlayers').textContent='0 / '+(S.maxPlayers||10);
+  $('#pvType').textContent=SWNAME[S.sw];$('#pvVer').textContent=S.mcver;$('#pvRam').textContent=S.ram+' GB';
+  $('#pvMode').textContent=cap(S.gm)+' · '+cap(S.diff);
+  $('#pvIcon').innerHTML=S.iconURL?'<img src="'+S.iconURL+'">':'<svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" fill="#3a3a4e"/><rect width="30" height="11" fill="#5fd35f"/><rect y="11" width="30" height="3" fill="#3fae3f"/></svg>';
+  $('#iconPrev').innerHTML=S.iconURL?'<img src="'+S.iconURL+'">':'no icon';
+  var tags=[];if(S.wl==='true')tags.push('Whitelist');if(S.auth==='offline')tags.push('Cracked');
+  var on=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});if(on.length)tags.push(on.length+(S.sw==='paper'?' plugin':' mod')+(on.length>1?'s':''));
+  $('#pvTags').innerHTML=tags.map(function(t){return '<span class="pv-tag">'+t+'</span>';}).join('');
+  var rows=[['Software',SWNAME[S.sw]],['Version',S.mcver],['Memory',S.ram+' GB'],['Max players',S.maxPlayers],
+    ['Gamemode',cap(S.gm)],['Difficulty',cap(S.diff)],['Who can join',S.wl==='true'?'Whitelist':'Anyone'],['Accounts',S.auth==='official'?'Official':'Cracked'],
+    ['Add-ons',on.length||'None'],['Icon',S.icon?'Custom':'Default']];
+  $('#summary').innerHTML=rows.map(function(r){return '<div><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('');
+}
+
+/* wizard */
+var step=0,MAX=4;
+function show(n){step=Math.max(0,Math.min(MAX,n));
+  $$('.step').forEach(function(s){s.classList.toggle('show',+s.getAttribute('data-step')===step);});
+  $$('#rail .rstep').forEach(function(r,i){r.classList.toggle('active',i===step);r.classList.toggle('done',i<step);});
+  $('#backBtn').style.visibility=step===0?'hidden':'visible';
+  $('#nextBtn').style.display=step===MAX?'none':'inline-flex';
+  if(step===MAX)render();
+  $('#build').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('#nextBtn').addEventListener('click',function(){show(step+1);});
+$('#backBtn').addEventListener('click',function(){show(step-1);});
+$$('#rail .rstep').forEach(function(r){r.addEventListener('click',function(){show(+r.getAttribute('data-go'));});});
+$('#eulaCheck').addEventListener('change',function(){$('#downloadZip').disabled=!this.checked;});
+
+/* file builders */
+function si(n,min,max,fb){return clampInt(n,min,max,fb);}
+function serverProps(){
+  var online=S.auth==='official'?'true':'false';var motd=(S.color+(S.motd||'My Server'))+(S.motd2?('\\n'+S.motd2):'');
+  return ['#Minecraft server properties (made with BlockForge)','server-port='+si(S.port,1,65535,25565),'motd='+motd,
+    'max-players='+si(S.maxPlayers,1,500,10),'gamemode='+S.gm,'difficulty='+S.diff,'online-mode='+online,
+    'white-list='+S.wl,'enforce-whitelist='+S.wl,'view-distance=10','simulation-distance=8','enable-command-block=false',
+    'pvp=true','spawn-protection=0','level-name=world'].join('\n')+'\n';
+}
+function startBat(){return ['@echo off','title Minecraft Server','cd /d "%~dp0"','setlocal enabledelayedexpansion','set "JAR="',
+  'for %%f in (*.jar) do set "JAR=%%f"','if "!JAR!"=="" ( echo No server file found. Run "1 - get server.bat" first, or put your .jar here. & pause & exit /b )',
+  'echo Starting !JAR! with '+S.ram+'GB RAM...','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "!JAR!" nogui','echo.','echo Server stopped.','pause >nul'].join('\r\n')+'\r\n';}
+function startSh(){return ['#!/bin/bash','cd "$(dirname "$0")"','JAR=$(ls *.jar 2>/dev/null | head -n1)',
+  'if [ -z "$JAR" ]; then echo "No .jar found. Run the get-server helper or drop your jar here."; read -n1; exit 1; fi',
+  'echo "Starting $JAR with '+S.ram+'GB RAM..."','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "$JAR" nogui'].join('\n')+'\n';}
+function getServerBat(){
+  if(S.sw==='paper'){return ['@echo off','title Get server file','cd /d "%~dp0"','echo Downloading Paper for Minecraft '+S.mcver+' ...',
+    'powershell -NoProfile -Command "$v=\''+S.mcver+'\'; try { $b=(Invoke-RestMethod \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds\\").builds[-1]; $n=$b.downloads.application.name; Invoke-WebRequest \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds/$($b.build)/downloads/$n\\" -OutFile server.jar; Write-Host \'Saved as server.jar\' } catch { Write-Host \'Auto-download failed. Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder.\' }"',
+    'echo.','echo Now open "2 - Start.bat"','pause'].join('\r\n')+'\r\n';}
+  var link=S.sw==='vanilla'?'https://www.minecraft.net/en-us/download/server':S.sw==='fabric'?'https://fabricmc.net/use/server/':'https://files.minecraftforge.net/';
+  return ['@echo off','title Get server file','echo For '+SWNAME[S.sw]+', download the server from:','echo   '+link,
+    'echo Then put the .jar in this folder (no renaming needed) and open Start.','start '+link,'pause'].join('\r\n')+'\r\n';}
+function installPs1(){
+  var slugs=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
+  var target=(S.sw==='paper')?'plugins':'mods';
+  var facet=(S.sw==='paper')?'["paper","spigot","bukkit","purpur"]':(S.sw==='fabric')?'["fabric"]':'["forge","neoforge"]';
+  return ['$ErrorActionPreference="SilentlyContinue"','$ver="'+S.mcver+'"','$dir="'+target+'"',
+    'New-Item -ItemType Directory -Force -Path $dir | Out-Null',
+    '$slugs=@('+slugs.map(function(s){return '"'+s+'"';}).join(',')+')',
+    'foreach($s in $slugs){',
+    '  $u="https://api.modrinth.com/v2/project/$s/version?game_versions=[`"$ver`"]&loaders='+facet.replace(/"/g,'`"')+'"',
+    '  $vs=Invoke-RestMethod -Uri $u',
+    '  if($vs -and $vs.Count -gt 0){ $f=$vs[0].files | Where-Object {$_.primary} | Select-Object -First 1; if(-not $f){$f=$vs[0].files[0]}',
+    '    Write-Host "Installing $s ..."; Invoke-WebRequest -Uri $f.url -OutFile (Join-Path $dir $f.filename) }',
+    '  else { Write-Host "Skipped $s (no build for $ver)" } }',
+    'Write-Host ""; Write-Host "Done. Add-ons are in the \''+target+'\' folder."'].join('\n')+'\n';
+}
+function installBat(){return ['@echo off','title Install add-ons','cd /d "%~dp0"','echo Installing your add-ons from Modrinth...',
+  'powershell -NoProfile -ExecutionPolicy Bypass -File "install-addons.ps1"','pause'].join('\r\n')+'\r\n';}
+function readme(){var slugs=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
+  return ['BlockForge - your Minecraft server','==================================','',
+    'QUICK START',
+    '1) Unzip this whole folder somewhere easy, like your Desktop.',
+    S.sw==='paper'?'2) Open  "1 - get server.bat"  (it downloads the server file for you).'
+                  :'2) Open  "1 - get server.bat"  and download the '+SWNAME[S.sw]+' server, then put the .jar in this folder.',
+    '3) Open  "2 - Start.bat"  (Mac: start.command). That is it.',
+    slugs.length?'4) For your add-ons, open  "3 - install add-ons.bat"  once.':'',
+    '','GOOD TO KNOW',
+    '- No renaming: Start uses whatever .jar is in the folder.',
+    '- The EULA is already accepted (you ticked the box), so eula.txt is set to true.',
+    '- Memory is '+S.ram+'GB. To change it, edit the number in Start.bat.',
+    /^26\./.test(S.mcver)?'- Minecraft '+S.mcver+' needs Java 25 installed.':'',
+    '- Add-ons download from Modrinth and need an internet connection.','',
+    'PLAY WITH FRIENDS',
+    '- Same Wi-Fi: friends use your computer\u2019s local IP (run ipconfig).',
+    '- Anywhere: install playit.gg (free) and share the address it gives you. No port forwarding.','',
+    'Not affiliated with Mojang Studios or Microsoft.'].filter(Boolean).join('\n')+'\n';}
+
+function setStatus(m){$('#status').textContent=m||'';}
+$('#downloadZip').addEventListener('click',function(){
+  if(typeof JSZip==='undefined'){setStatus('Could not load the zip library — check your connection and retry.');return;}
+  setStatus('Building your server…');var zip=new JSZip();
+  zip.file('eula.txt','#Minecraft EULA accepted via BlockForge\neula=true\n');
+  zip.file('server.properties',serverProps());
+  zip.file('2 - Start.bat',startBat());zip.file('start.command',startSh());zip.file('1 - get server.bat',getServerBat());
+  zip.file('README.txt',readme());
+  if(S.icon)zip.file('server-icon.png',S.icon);
+  var slugs=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
+  if(slugs.length){zip.file('3 - install add-ons.bat',installBat());zip.file('install-addons.ps1',installPs1());}
+  zip.generateAsync({type:'blob'}).then(function(blob){var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=(S.motd?S.motd.replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-|-$/g,''):'minecraft')+'-server.zip';
+    document.body.appendChild(a);a.click();a.remove();
+    setStatus('Done. Unzip it and open Start — no renaming needed.');
+  }).catch(function(e){setStatus('Error: '+e.message);});
+});
+
+buildAddons();render();
+</script>
+</body>
+</html>
