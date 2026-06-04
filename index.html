@@ -219,6 +219,30 @@ footer.foot{border-top:1px solid var(--line);margin-top:24px;padding:32px 0 44px
 
 @media(max-width:920px){.bgrid{grid-template-columns:1fr}.preview{position:static}.opts,.addgrid,.row{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* visible, on-theme scrollbars */
+html{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:color-mix(in srgb,var(--panel) 60%,transparent)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--amber),var(--amber2));border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{filter:brightness(1.1)}
+.results{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
+
+/* connect-friends checklist */
+.joinpanel{margin-top:18px}
+.check{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:10px}
+.check li{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;cursor:pointer;
+  background:color-mix(in srgb,var(--bg) 45%,var(--panel));transition:.13s;font-size:14.5px;line-height:1.5}
+.check li:hover{border-color:color-mix(in srgb,var(--amber) 35%,var(--line))}
+.check li .cb{width:24px;height:24px;flex:none;border-radius:7px;border:1.5px solid var(--line);margin-top:1px;display:grid;place-items:center;
+  font-weight:900;color:var(--ink);font-size:14px;transition:.13s}
+.check li.done .cb{background:linear-gradient(180deg,var(--good),#2faf63);border-color:transparent}
+.check li.done .cb::after{content:"✓"}
+.check li.done{border-color:color-mix(in srgb,var(--good) 40%,var(--line));background:color-mix(in srgb,var(--good) 8%,transparent)}
+.check li.done span:not(.cb),.check li.done{opacity:.85}
+.ilink{color:var(--amber);font-weight:700;text-decoration:none;white-space:nowrap}
+.ilink:hover{text-decoration:underline}
+.copyrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -258,6 +282,7 @@ footer.foot{border-top:1px solid var(--line);margin-top:24px;padding:32px 0 44px
     <div class="rstep" data-go="2"><span class="n">3</span><span class="t">Appearance</span></div>
     <div class="rstep" data-go="3"><span class="n">4</span><span class="t">Plugins &amp; mods</span></div>
     <div class="rstep" data-go="4"><span class="n">5</span><span class="t">Download</span></div>
+    <div class="rstep" data-go="5"><span class="n">6</span><span class="t">Connect friends</span></div>
   </div>
 
   <div class="bgrid">
@@ -401,6 +426,66 @@ footer.foot{border-top:1px solid var(--line);margin-top:24px;padding:32px 0 44px
         </label>
         <button class="btn primary" id="downloadZip" type="button" disabled>Download my server</button>
         <div class="status" id="status" aria-live="polite"></div>
+      </section>
+
+      <!-- STEP 6 — Connect friends (interactive) -->
+      <section class="step" data-step="5">
+        <h2>Get your friends connected</h2>
+        <p class="lead">Where are the people you want to play with? Pick one and follow the ticks.</p>
+        <div class="opts" id="joinOpts">
+          <div class="opt sel" data-join="lan"><div class="oh"><h4>Same house / Wi-Fi</h4><span class="badge">Easiest</span></div><p>They are on the same internet connection as you (same home).</p></div>
+          <div class="opt" data-join="playit"><div class="oh"><h4>Anywhere (online)</h4><span class="badge">No router setup</span></div><p>Friends are in other houses or cities. The free, no-hassle way.</p></div>
+          <div class="opt" data-join="port"><div class="oh"><h4>Port forwarding</h4></div><p>The manual router method. Free, but the most technical.</p></div>
+        </div>
+
+        <!-- LAN -->
+        <div class="joinpanel" id="join-lan">
+          <div class="callout"><strong>Step 1 — find your computer's local address</strong>
+            <div style="margin-top:10px" class="copyrow">
+              <button class="btn ghost sm" id="findIp" type="button">Show me how to find it</button>
+            </div>
+            <div id="ipHelp" class="help" style="margin-top:8px;display:none">
+              Press the <b>Windows key + R</b>, type <code>cmd</code>, press Enter. In the black window type <code>ipconfig</code> and press Enter. Look for <b>IPv4 Address</b> — it looks like <code>192.168.x.x</code>. That number is your server address on your Wi-Fi.
+            </div>
+          </div>
+          <ul class="check" id="lanChecks">
+            <li data-c><span class="cb"></span>Start your server (open <code>Start.bat</code>) and leave it running.</li>
+            <li data-c><span class="cb"></span>Find your IPv4 address using the button above.</li>
+            <li data-c><span class="cb"></span>Make sure your friends are on the <b>same Wi-Fi</b> as you.</li>
+            <li data-c><span class="cb"></span>In Minecraft they click <b>Multiplayer → Add Server</b>.</li>
+            <li data-c><span class="cb"></span>They type your address, e.g. <code>192.168.1.20:25565</code>, and join.</li>
+          </ul>
+        </div>
+
+        <!-- PLAYIT -->
+        <div class="joinpanel" id="join-playit" style="display:none">
+          <div class="callout good"><strong>playit.gg gives your server a public address for free</strong> — no router changes, friends can be anywhere. Keep the playit app open while you play.</div>
+          <ul class="check" id="playitChecks">
+            <li data-c><span class="cb"></span>Start your server (<code>Start.bat</code>) and leave it running.</li>
+            <li data-c><span class="cb"></span>Download playit.gg and install it. <a class="ilink" href="https://playit.gg/download" target="_blank" rel="noopener">Open playit.gg →</a></li>
+            <li data-c><span class="cb"></span>Open the playit app and sign in (free account).</li>
+            <li data-c><span class="cb"></span>Add a <b>Minecraft Java</b> tunnel — it points to <code>127.0.0.1:25565</code> by default, which is correct.</li>
+            <li data-c><span class="cb"></span>playit shows you an address like <code>yourname.playit.gg</code>. That is your server address.</li>
+            <li data-c><span class="cb"></span>Share that address. Friends use <b>Multiplayer → Add Server</b> and paste it in.</li>
+          </ul>
+        </div>
+
+        <!-- PORT FORWARD -->
+        <div class="joinpanel" id="join-port" style="display:none">
+          <div class="callout"><strong>Heads up:</strong> port forwarding opens your home network to the internet. It works well but is the most technical option, and steps differ per router. If it feels like too much, use the "Anywhere (online)" option instead.</div>
+          <ul class="check" id="portChecks">
+            <li data-c><span class="cb"></span>Find your local IPv4 address (<code>ipconfig</code> → IPv4, like <code>192.168.x.x</code>).</li>
+            <li data-c><span class="cb"></span>Open your router page in a browser: usually <code>192.168.0.1</code> or <code>192.168.1.1</code>.</li>
+            <li data-c><span class="cb"></span>Log in (the password is often on a sticker on the router).</li>
+            <li data-c><span class="cb"></span>Find <b>Port Forwarding</b> and add a rule: port <code>25565</code>, type <b>TCP</b>, pointing to your local IPv4.</li>
+            <li data-c><span class="cb"></span>If Windows asks, allow Java through the firewall.</li>
+            <li data-c><span class="cb"></span>Find your <b>public</b> IP (search "what is my ip"). That is what friends use, e.g. <code>1.2.3.4:25565</code>.</li>
+          </ul>
+        </div>
+
+        <div class="joindone" id="joinDone" style="display:none">
+          <div class="callout good"><strong>That's everything.</strong> Your friends should be able to join now. If a friend can't connect, double-check the server is running and they typed the address exactly, port included.</div>
+        </div>
       </section>
 
       <div class="nav-btns">
@@ -629,13 +714,13 @@ function render(){
 }
 
 /* wizard */
-var step=0,MAX=4;
+var step=0,MAX=5;
 function show(n){step=Math.max(0,Math.min(MAX,n));
   $$('.step').forEach(function(s){s.classList.toggle('show',+s.getAttribute('data-step')===step);});
   $$('#rail .rstep').forEach(function(r,i){r.classList.toggle('active',i===step);r.classList.toggle('done',i<step);});
   $('#backBtn').style.visibility=step===0?'hidden':'visible';
   $('#nextBtn').style.display=step===MAX?'none':'inline-flex';
-  if(step===MAX)render();
+  if(step===4)render();
   $('#build').scrollIntoView({behavior:'smooth',block:'start'});
 }
 $('#nextBtn').addEventListener('click',function(){show(step+1);});
@@ -652,14 +737,20 @@ function serverProps(){
     'white-list='+S.wl,'enforce-whitelist='+S.wl,'view-distance=10','simulation-distance=8','enable-command-block=false',
     'pvp=true','spawn-protection=0','level-name=world'].join('\n')+'\n';
 }
+function paperDownloadPS(){
+  // tries the new v3 API, falls back to the old v2; saves as server.jar
+  return "powershell -NoProfile -Command \"$v='"+S.mcver+"'; $ok=$false; "+
+    "try { $r=Invoke-RestMethod \\\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\\"; $u=$r.downloads.'server:default'.url; if(-not $u){$u=$r.downloads.application.url}; Invoke-WebRequest $u -OutFile server.jar; $ok=$true } catch {} ; "+
+    "if(-not $ok){ try { $b=(Invoke-RestMethod \\\"https://api.papermc.io/v2/projects/paper/versions/$v/builds\\\").builds[-1]; $n=$b.downloads.application.name; Invoke-WebRequest \\\"https://api.papermc.io/v2/projects/paper/versions/$v/builds/$($b.build)/downloads/$n\\\" -OutFile server.jar; $ok=$true } catch {} } ; "+
+    "if($ok){ Write-Host 'Downloaded server.jar' } else { Write-Host 'Could not download automatically. Get Paper "+S.mcver+" from papermc.io/downloads and put the .jar in this folder.' }\"";
+}
 function startBat(){
   var lines=['@echo off','title Minecraft Server','cd /d "%~dp0"','setlocal enabledelayedexpansion','set "JAR="',
     'for %%f in (*.jar) do set "JAR=%%f"'];
   if(S.sw==='paper'){
-    // auto-download Paper on first run if nothing is there yet
     lines.push('if "!JAR!"=="" (',
       '  echo No server file yet. Downloading Paper for Minecraft '+S.mcver+' ...',
-      '  powershell -NoProfile -Command "$v=\''+S.mcver+'\'; try { $b=(Invoke-RestMethod \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds\\").builds[-1]; $n=$b.downloads.application.name; Invoke-WebRequest \\"https://api.papermc.io/v2/projects/paper/versions/$v/builds/$($b.build)/downloads/$n\\" -OutFile server.jar; Write-Host \'Downloaded server.jar\' } catch { Write-Host \'Could not download automatically. Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder.\' }"',
+      '  '+paperDownloadPS(),
       '  for %%f in (*.jar) do set "JAR=%%f"',
       ')');
   }
@@ -745,27 +836,59 @@ $('#downloadZip').addEventListener('click',function(){
   }).catch(function(e){setStatus('Error: '+e.message);});
 });
 
-/* keep the version list current automatically — pull Paper's supported versions */
+/* keep the version list current — but NEVER let the API downgrade the built-in list */
 function verKey(v){
-  // turn "26.1.2" or "1.21.11" into a comparable number array; handle snapshots/pre safely
   var m=String(v).match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
   if(!m)return [0,0,0];
   return [parseInt(m[1]||0,10),parseInt(m[2]||0,10),parseInt(m[3]||0,10)];
 }
 function cmpVer(a,b){var x=verKey(a),y=verKey(b);for(var i=0;i<3;i++){if(x[i]!==y[i])return y[i]-x[i];}return 0;}
+function builtinTop(){var o=$('#mcver option');return o?o.value:'26.1.2';}
+function applyVersions(vers){
+  vers=(vers||[]).filter(function(v){return /^\d+(\.\d+){1,2}$/.test(v);}).sort(cmpVer);
+  if(!vers.length)return false;
+  // SAFETY: only accept the API list if its newest is at least as new as our built-in newest.
+  // This guarantees the API can update us forward (26.2, 27.x…) but can never push us back to 1.21.x.
+  if(cmpVer(vers[0],builtinTop())>0)return false;
+  var sel=$('#mcver');sel.innerHTML='';
+  vers.forEach(function(v,i){var o=document.createElement('option');o.value=v;o.textContent=v+(i===0?' — latest':'');sel.appendChild(o);});
+  S.mcver=vers[0];sel.value=vers[0];
+  $('#verHint').textContent=(/^26\./.test(S.mcver)||verKey(S.mcver)[0]>26)?'Heads up: 26.x and newer need Java 25 (or later) installed.':'Pick the version you and your friends play on. This list stays up to date.';
+  render();return true;
+}
 function loadVersions(){
-  fetch('https://api.papermc.io/v2/projects/paper').then(function(r){return r.json();}).then(function(j){
-    var vers=(j&&j.versions)||[];
-    if(!vers.length)return;
-    // only keep clean release versions (skip snapshots/pre-releases), then sort newest first
-    vers=vers.filter(function(v){return /^\d+(\.\d+){1,2}$/.test(v);}).sort(cmpVer);
-    if(!vers.length)return;
-    var sel=$('#mcver');sel.innerHTML='';
-    vers.forEach(function(v,i){var o=document.createElement('option');o.value=v;o.textContent=v+(i===0?' — latest':'');sel.appendChild(o);});
-    S.mcver=vers[0];sel.value=vers[0];
-    $('#verHint').textContent=(/^26\./.test(S.mcver))?'Heads up: 26.x needs Java 25 installed to run.':'Pick the version you and your friends play on. This list updates itself.';
-    render();
-  }).catch(function(){/* offline or blocked: keep the built-in fallback list */});
+  fetch('https://fill.papermc.io/v3/projects/paper').then(function(r){return r.json();}).then(function(j){
+    var vers=[];
+    if(j&&j.versions){
+      if(Array.isArray(j.versions)){vers=j.versions;}
+      else{Object.keys(j.versions).forEach(function(k){var a=j.versions[k];if(Array.isArray(a))vers=vers.concat(a);else vers.push(k);});}
+    }
+    if(!applyVersions(vers))throw new Error('skip');
+  }).catch(function(){
+    fetch('https://api.papermc.io/v2/projects/paper').then(function(r){return r.json();}).then(function(j){
+      applyVersions((j&&j.versions)||[]);
+    }).catch(function(){/* keep built-in list */});
+  });
+}
+
+/* connect-friends step */
+function showJoin(which){
+  ['lan','playit','port'].forEach(function(k){var el=$('#join-'+k);if(el)el.style.display=(k===which)?'':'none';});
+  updateJoinDone();
+}
+$$('#joinOpts .opt').forEach(function(o){o.addEventListener('click',function(){
+  $$('#joinOpts .opt').forEach(function(x){x.classList.remove('sel')});o.classList.add('sel');
+  showJoin(o.getAttribute('data-join'));});});
+var fi=$('#findIp');if(fi)fi.addEventListener('click',function(){var h=$('#ipHelp');h.style.display=h.style.display==='none'?'block':'none';});
+// make every checklist item tickable
+$$('.check li[data-c]').forEach(function(li){li.addEventListener('click',function(e){
+  if(e.target.closest('a'))return; // let links work without ticking
+  li.classList.toggle('done');updateJoinDone();});});
+function updateJoinDone(){
+  var vis=$$('.joinpanel').filter(function(p){return p.style.display!=='none';})[0];
+  var done=$('#joinDone');if(!vis||!done)return;
+  var items=$$('.check li',vis);var all=items.length>0&&items.every(function(li){return li.classList.contains('done');});
+  done.style.display=all?'block':'none';
 }
 
 buildAddons();render();loadVersions();
