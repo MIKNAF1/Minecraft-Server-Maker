@@ -220,13 +220,72 @@ footer.foot{border-top:1px solid var(--line);margin-top:24px;padding:32px 0 44px
 @media(max-width:920px){.bgrid{grid-template-columns:1fr}.preview{position:static}.opts,.addgrid,.row{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
-/* visible, on-theme scrollbars */
-html{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
-::-webkit-scrollbar{width:12px;height:12px}
-::-webkit-scrollbar-track{background:color-mix(in srgb,var(--panel) 60%,transparent)}
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--amber),var(--amber2));border-radius:8px;border:2px solid transparent;background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{filter:brightness(1.1)}
+/* native scrollbar hidden — we draw a custom floating pill (see #sbThumb) */
+html{scrollbar-width:none;-ms-overflow-style:none}
+::-webkit-scrollbar{width:0;height:0;background:transparent}
 .results{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
+/* custom floating scrollbar */
+#sbTrack{position:fixed;top:14px;bottom:14px;right:12px;width:12px;z-index:90;pointer-events:none;opacity:0;transition:opacity .25s ease}
+#sbTrack.on{opacity:1}
+#sbThumb{position:absolute;left:0;right:0;border-radius:999px;cursor:grab;pointer-events:auto;
+  background:linear-gradient(180deg,var(--amber),var(--amber2));
+  box-shadow:0 0 16px color-mix(in srgb,var(--amber) 70%,transparent),inset 0 0 0 1px rgba(0,0,0,.15)}
+#sbThumb:hover{filter:brightness(1.12)}
+#sbThumb.drag{cursor:grabbing;filter:brightness(1.2)}
+
+/* ===== views & transitions ===== */
+.view{display:none}
+.view.show{display:block;animation:viewIn .5s cubic-bezier(.2,.7,.2,1) both}
+.view.out{animation:viewOut .32s ease both}
+@keyframes viewIn{from{opacity:0;transform:translateY(16px) scale(.992)}to{opacity:1;transform:none}}
+@keyframes viewOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-14px) scale(.992)}}
+.reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}.reveal.d4{transition-delay:.32s}
+
+/* hero CTA + animated buttons */
+.hero-cta{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.btn.big{padding:15px 28px;font-size:18px;border-radius:15px}
+.btn .arrow{display:inline-block;transition:transform .2s ease}
+.btn:hover .arrow{transform:translateX(4px)}
+.btn.primary{position:relative;overflow:hidden}
+.btn.primary::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);pointer-events:none}
+.btn.primary:hover::after{animation:sheen .7s ease}
+@keyframes sheen{to{left:130%}}
+.hero h1 em{display:inline-block}
+.view.show .hero h1 em{animation:pop .6s .3s both}
+@keyframes pop{0%{transform:scale(.9);opacity:.4}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+
+/* how-it-works */
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:18px 20px 26px}
+.how-card{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:linear-gradient(180deg,var(--card-top),transparent 16%),var(--card);
+  box-shadow:var(--shadow-sm);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.how-card:hover{transform:translateY(-5px);border-color:color-mix(in srgb,var(--amber) 40%,var(--line));box-shadow:var(--shadow)}
+.how-n{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-family:var(--fp);font-size:12px;color:var(--ink);
+  background:linear-gradient(180deg,var(--amber),var(--amber2));box-shadow:inset 0 -3px 0 rgba(0,0,0,.22);margin-bottom:12px}
+.how-card h3{font-family:var(--fd);font-weight:700;margin:0 0 6px;font-size:18px}
+.how-card p{margin:0;color:var(--muted);font-size:14px}
+
+/* tasteful hovers + step entrance */
+.opt:hover,.tile:hover{transform:translateY(-3px)}
+.step.show{animation:stepIn .34s cubic-bezier(.2,.7,.2,1) both}
+@keyframes stepIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+.rstep{transition:transform .14s ease,border-color .15s ease,background .15s ease}
+.rstep:hover{transform:translateY(-2px)}
+.check li:active{transform:scale(.99)}
+.backhome{margin-bottom:14px}
+
+/* domain helper */
+.domainbox{margin-top:22px;border:1px solid var(--line);border-radius:var(--radius);padding:20px;background:linear-gradient(180deg,var(--card-top),transparent 14%),var(--card)}
+.domainbox h3{font-family:var(--fd);font-weight:700;margin:0 0 6px;font-size:18px}
+.reccard{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px;background:color-mix(in srgb,var(--bg) 45%,var(--panel));animation:viewIn .4s both}
+.reccard h5{margin:0 0 8px;font-family:var(--fd);font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
+.reccard .pilltag{font-family:var(--fm);font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink);background:linear-gradient(180deg,var(--good),#2faf63);padding:2px 8px;border-radius:999px}
+.kv{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;margin:5px 0;font-size:13.5px}
+.kv>span{color:var(--muted)}
+.kv code{font-family:var(--fm);color:var(--text);word-break:break-all}
+.copybtn2{font-family:var(--fd);font-weight:700;font-size:12px;padding:6px 12px;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 50%,var(--panel));color:var(--text)}
+.copybtn2.done{background:var(--good);color:#04240f;border-color:transparent}
+@media(max-width:620px){.how{grid-template-columns:1fr}.kv{grid-template-columns:1fr;gap:3px}}
 
 /* connect-friends checklist */
 .joinpanel{margin-top:18px}
@@ -247,6 +306,8 @@ html{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
 </head>
 <body>
 
+<div id="sbTrack"><div id="sbThumb"></div></div>
+
 <header class="nav"><div class="wrap nav-in">
   <a class="brand" href="#top">
     <span class="mark"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1l8 4.5v9L10 19l-8-4.5v-9z" fill="none" stroke="#f6a623" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 1v18M2 5.5l8 4.5 8-4.5" fill="none" stroke="#56b6ff" stroke-width="1.1" stroke-linejoin="round" opacity=".8"/></svg></span>
@@ -254,28 +315,45 @@ html{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
   </a>
   <div class="nav-actions">
     <button class="toggle" id="themeToggle" type="button"><span class="dot"></span><span id="themeLabel">Night</span></button>
-    <a class="btn primary sm" href="#build">Start building</a>
+    <button class="btn primary sm" id="startNav" type="button">Start building</button>
   </div>
 </div></header>
 
-<div id="top" class="hero">
-  <div class="wrap">
-    <span class="kick">NO RENAMING · NO EULA EDITING · JUST RUN IT</span>
-    <h1>Set up a <em>Minecraft server</em> without the usual hassle.</h1>
-    <p class="sub">Pick a few options and download a folder that runs as-is. Unzip it, open the start file, and you are online. Add plugins, mods and your own icon along the way.</p>
-    <div class="chips">
-      <span class="chip"><span class="tick"></span> No file renaming</span>
-      <span class="chip"><span class="tick"></span> Any plugin or mod from Modrinth</span>
-      <span class="chip"><span class="tick"></span> Custom server icon</span>
-      <span class="chip"><span class="tick"></span> Free, no account</span>
+<!-- ============ LANDING VIEW ============ -->
+<div id="view-landing" class="view show">
+  <div id="top" class="hero">
+    <div class="wrap">
+      <span class="kick reveal">NO RENAMING · NO EULA EDITING · JUST RUN IT</span>
+      <h1 class="reveal d1">Set up a <em>Minecraft server</em> without the usual hassle.</h1>
+      <p class="sub reveal d2">Pick a few options and download a folder that runs as-is. Unzip it, open the start file, and you are online. Add plugins, mods and your own icon along the way.</p>
+      <div class="hero-cta reveal d3">
+        <button class="btn primary big" id="startBig" type="button">Start building <span class="arrow">&rarr;</span></button>
+        <a class="btn ghost big" href="#how" id="howLink">How it works</a>
+      </div>
+      <div class="chips reveal d4">
+        <span class="chip"><span class="tick"></span> No file renaming</span>
+        <span class="chip"><span class="tick"></span> Any plugin or mod from Modrinth</span>
+        <span class="chip"><span class="tick"></span> Custom server icon</span>
+        <span class="chip"><span class="tick"></span> Free, no account</span>
+      </div>
     </div>
+    <svg class="horizon" viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="#0a0f1f" d="M0,120 L0,70 L80,70 L80,55 L180,55 L180,72 L300,72 L300,48 L420,48 L420,64 L520,64 L520,40 L640,40 L640,60 L760,60 L760,52 L880,52 L880,68 L1000,68 L1000,46 L1120,46 L1120,66 L1200,66 L1200,120 Z"/></svg>
   </div>
-  <svg class="horizon" viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="#0a0f1f" d="M0,120 L0,70 L80,70 L80,55 L180,55 L180,72 L300,72 L300,48 L420,48 L420,64 L520,64 L520,40 L640,40 L640,60 L760,60 L760,52 L880,52 L880,68 L1000,68 L1000,46 L1120,46 L1120,66 L1200,66 L1200,120 Z"/></svg>
+
+  <div class="ad reveal"><span class="lbl">Advertisement</span><p class="note">Ad space — keeps BlockForge free. Paste your ad code here.</p></div>
+
+  <div id="how" class="wrap how">
+    <div class="how-card reveal"><div class="how-n">1</div><h3>Pick your setup</h3><p>Software, version, memory, look and add-ons — in a few friendly steps with sensible defaults.</p></div>
+    <div class="how-card reveal d1"><div class="how-n">2</div><h3>Download &amp; run</h3><p>Unzip the folder, open Start. It grabs the server for you and launches — no renaming, no eula.txt.</p></div>
+    <div class="how-card reveal d2"><div class="how-n">3</div><h3>Invite friends</h3><p>We walk you through connecting friends, with a free no-router option and a custom domain helper.</p></div>
+  </div>
+  <div class="wrap" style="text-align:center;padding:6px 0 50px"><button class="btn primary big reveal" id="startBig2" type="button">Start building <span class="arrow">&rarr;</span></button></div>
 </div>
 
-<div class="ad"><span class="lbl">Advertisement</span><p class="note">Ad space — keeps BlockForge free. Paste your ad code here.</p></div>
-
+<!-- ============ BUILDER VIEW ============ -->
+<div id="view-build" class="view">
 <div id="build" class="builder"><div class="wrap">
+  <button class="btn ghost sm backhome" id="backHome" type="button">&larr; Home</button>
   <div class="rail" id="rail">
     <div class="rstep active" data-go="0"><span class="n">1</span><span class="t">Server type</span></div>
     <div class="rstep" data-go="1"><span class="n">2</span><span class="t">Basics</span></div>
@@ -486,6 +564,25 @@ html{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
         <div class="joindone" id="joinDone" style="display:none">
           <div class="callout good"><strong>That's everything.</strong> Your friends should be able to join now. If a friend can't connect, double-check the server is running and they typed the address exactly, port included.</div>
         </div>
+
+        <!-- DOMAIN HELPER -->
+        <div class="domainbox">
+          <h3>Optional: give your server a custom domain</h3>
+          <p class="muted" style="margin:0 0 16px">A custom domain means friends type something like <code>play.yourname.duckdns.org</code> instead of a long address. It's free, and we'll walk you through every click. First, pick where you want your free domain:</p>
+
+          <div class="opts" id="provOpts" style="margin-bottom:18px">
+            <div class="opt sel" data-prov="duck"><div class="oh"><h4>DuckDNS</h4><span class="badge">Simplest</span></div><p>Easiest to set up. Friends will type your address <b>with</b> the port (e.g. <code>:25565</code>). Best if you just want it working fast.</p></div>
+            <div class="opt" data-prov="mc"><div class="oh"><h4>Minecraft subdomain</h4><span class="badge">No port</span></div><p>A service like mine.bz / mcdns. A bit more setup, but friends type a clean address with <b>no port</b>.</p></div>
+          </div>
+
+          <div class="row">
+            <div class="fld"><label>1. Your current server address (from playit, or your IP)</label><input id="domAddr" type="text" placeholder="logo-bacon.gl.joinmc.link" /></div>
+            <div class="fld"><label>2. Your port</label><input id="domPort" type="number" min="1" max="65535" value="25565" /></div>
+          </div>
+          <div class="fld"><label>3. The name you want (the part you make up)</label><input id="domName" type="text" placeholder="play" value="play" /></div>
+          <button class="btn primary sm" id="domGen" type="button">Show me exactly what to do</button>
+          <div id="domOut" style="display:none;margin-top:18px"></div>
+        </div>
       </section>
 
       <div class="nav-btns">
@@ -517,6 +614,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--amber) transparent}
 </div></div>
 
 <div class="ad"><span class="lbl">Advertisement</span><p class="note">Ad space — paste your ad code here.</p></div>
+</div><!-- /view-build -->
 
 <footer class="foot"><div class="wrap">
   <a class="brand" href="#top"><span class="mark"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1l8 4.5v9L10 19l-8-4.5v-9z" fill="none" stroke="#f6a623" stroke-width="1.4" stroke-linejoin="round"/></svg></span><b>Block<span>Forge</span></b></a>
@@ -891,7 +989,111 @@ function updateJoinDone(){
   done.style.display=all?'block':'none';
 }
 
-buildAddons();render();loadVersions();
+/* custom floating scrollbar pill */
+(function(){
+  var track=document.getElementById('sbTrack'),thumb=document.getElementById('sbThumb');
+  if(!track||!thumb)return;
+  var hideT=null;
+  function doc(){return document.documentElement;}
+  function maxScroll(){return doc().scrollHeight-window.innerHeight;}
+  function update(){
+    var ms=maxScroll();
+    if(ms<=4){track.classList.remove('on');return;}
+    var trackH=track.clientHeight;
+    var thumbH=Math.max(48,trackH*(window.innerHeight/doc().scrollHeight));
+    var y=(window.scrollY/ms)*(trackH-thumbH);
+    thumb.style.height=thumbH+'px';
+    thumb.style.transform='translateY('+y+'px)';
+    show();
+  }
+  function show(){track.classList.add('on');clearTimeout(hideT);hideT=setTimeout(function(){if(!dragging)track.classList.remove('on');},1400);}
+  var dragging=false,startY=0,startScroll=0;
+  thumb.addEventListener('mousedown',function(e){
+    dragging=true;thumb.classList.add('drag');startY=e.clientY;startScroll=window.scrollY;
+    document.body.style.userSelect='none';e.preventDefault();
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!dragging)return;
+    var trackH=track.clientHeight,thumbH=thumb.offsetHeight;
+    var deltaPx=e.clientY-startY;
+    var scrollPerPx=maxScroll()/(trackH-thumbH);
+    window.scrollTo(0,startScroll+deltaPx*scrollPerPx);
+  });
+  window.addEventListener('mouseup',function(){dragging=false;thumb.classList.remove('drag');document.body.style.userSelect='';});
+  window.addEventListener('scroll',update,{passive:true});
+  window.addEventListener('resize',update);
+  window.addEventListener('load',update);
+  setInterval(update,800); // catch height changes when wizard steps swap
+  update();
+})();
+
+/* ===== view switching (landing <-> builder) ===== */
+function switchView(toId){
+  var cur=$('.view.show'), nxt=document.getElementById(toId);
+  if(!nxt||cur===nxt)return;
+  if(cur){cur.classList.add('out');
+    setTimeout(function(){cur.classList.remove('show');cur.classList.remove('out');nxt.classList.add('show');window.scrollTo(0,0);},300);}
+  else{nxt.classList.add('show');window.scrollTo(0,0);}
+}
+function goBuild(){switchView('view-build');}
+['startNav','startBig','startBig2'].forEach(function(id){var b=$('#'+id);if(b)b.addEventListener('click',goBuild);});
+var bh=$('#backHome');if(bh)bh.addEventListener('click',function(){switchView('view-landing');setTimeout(revealLanding,60);});
+var hl=$('#howLink');if(hl)hl.addEventListener('click',function(e){e.preventDefault();var el=$('#how');if(el)el.scrollIntoView({behavior:'smooth'});});
+
+/* reveal landing items */
+function revealLanding(){$$('#view-landing .reveal').forEach(function(el){el.classList.add('in');});}
+
+/* ===== custom domain helper ===== */
+function copyText(t,btn){navigator.clipboard.writeText(t).then(function(){if(btn){var o=btn.textContent;btn.textContent='Copied';btn.classList.add('done');setTimeout(function(){btn.textContent=o;btn.classList.remove('done');},1100);}}).catch(function(){});}
+var PROV='duck';
+$$('#provOpts .opt').forEach(function(o){o.addEventListener('click',function(){
+  $$('#provOpts .opt').forEach(function(x){x.classList.remove('sel')});o.classList.add('sel');PROV=o.getAttribute('data-prov');});});
+function row(k,v){return '<div class="kv"><span>'+k+'</span><code>'+String(v).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</code><button class="copybtn2" data-c="'+String(v).replace(/"/g,'&quot;')+'">Copy</button></div>';}
+var dg=$('#domGen');
+if(dg)dg.addEventListener('click',function(){
+  var addr=($('#domAddr').value||'').trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/:\d+$/,'');
+  var port=clampInt($('#domPort').value,1,65535,25565);
+  var name=($('#domName').value||'play').trim().replace(/[^a-z0-9-]/gi,'').toLowerCase()||'play';
+  var out=$('#domOut');
+  if(!addr){out.style.display='block';out.innerHTML='<div class="callout">Type your server address first — the one playit gave you (like <code>logo-bacon.gl.joinmc.link</code>), or your home public IP.</div>';return;}
+  var isIp=/^\d{1,3}(\.\d{1,3}){3}$/.test(addr);
+  var html='';
+
+  if(PROV==='duck'){
+    html+='<div class="callout"><strong>Quick note about DuckDNS.</strong> DuckDNS can only point to an <b>IP address</b>, not a playit hostname. So this works best if you use <b>port forwarding</b> (where you have a real IP). If you use playit, the "Minecraft subdomain" option above is the better fit.</div>';
+    html+='<div class="reccard"><h5>Step-by-step — DuckDNS <span class="pilltag">very simple</span></h5>'+
+      dstep(1,'Go to <a class="ilink" href="https://www.duckdns.org" target="_blank" rel="noopener">duckdns.org</a> and sign in (with Google, GitHub, etc. — it\u2019s free).')+
+      dstep(2,'In the box near the top, type the name you want: <b>'+name+'</b> and click <b>add domain</b>. You now own <code>'+name+'.duckdns.org</code>.')+
+      dstep(3,'In the <b>current ip</b> box next to your new domain, paste your server\u2019s IP address:')+
+      '<div style="margin:6px 0 8px">'+row('Put this IP', isIp?addr:'(your home public IP — search "what is my ip")')+'</div>'+
+      dstep(4,'Click <b>update ip</b>. Done.')+
+      dstep(5,'Your friends connect with this address (with the port):')+
+      '<div style="margin-top:6px">'+row('Server address', name+'.duckdns.org:'+port)+'</div>'+
+      '<p class="muted" style="margin:10px 0 0;font-size:12.5px">If your home IP ever changes, just repeat steps 3–4 with the new IP. (DuckDNS has an auto-updater if you want, but that\u2019s optional.)</p></div>';
+  } else {
+    // minecraft subdomain service — supports SRV, works great with playit
+    html+='<div class="callout good"><strong>Great choice for playit.</strong> A Minecraft subdomain service supports SRV records, so friends won\u2019t need to type the port. We\u2019ll give you the exact thing to enter.</div>';
+    html+='<div class="reccard"><h5>Step-by-step — Minecraft subdomain <span class="pilltag">no port for friends</span></h5>'+
+      dstep(1,'Go to a free Minecraft subdomain site, e.g. <a class="ilink" href="https://mcdns.net" target="_blank" rel="noopener">mcdns.net</a> or <a class="ilink" href="https://www.mine.bz" target="_blank" rel="noopener">mine.bz</a>, and sign up (free).')+
+      dstep(2,'Choose to <b>add a new record</b>. For the <b>Type</b>, pick <b>SRV</b>.')+
+      dstep(3,'For the <b>name / subdomain</b>, enter exactly this (the underscores matter!):')+
+      '<div style="margin:6px 0 8px">'+row('Name / Subdomain','_minecraft._tcp.'+name)+'</div>'+
+      dstep(4,'For the <b>destination / content / target</b>, enter exactly this:')+
+      '<div style="margin:6px 0 8px">'+row('Destination','0 0 '+port+' '+addr)+'</div>'+
+      '<p class="muted" style="margin:0 0 8px;font-size:12.5px">(That\u2019s priority <b>0</b>, weight <b>0</b>, your port <b>'+port+'</b>, then your address. Some sites have separate boxes for each — if so: Priority 0, Weight 0, Port '+port+', Target '+addr+'.)</p>'+
+      dstep(5,'Solve the captcha if it shows one, then click <b>Save</b>. Wait 5–15 minutes.')+
+      dstep(6,'Friends connect with just this — no port needed:')+
+      '<div style="margin-top:6px">'+row('Server address', name+'.'+'(your subdomain site, e.g. mine.bz)')+'</div>'+
+      '<p class="muted" style="margin:10px 0 0;font-size:12.5px">Example: if you used mine.bz, the address is <code>'+name+'.mine.bz</code>.</p></div>';
+  }
+  html+='<div class="callout" style="margin-top:14px"><strong>Important:</strong> your server (Start.bat) and the playit app must be <b>running</b> whenever friends try to join — the domain only points <i>to</i> your server, it doesn\u2019t keep it online.</div>';
+  out.style.display='block';out.innerHTML=html;
+  $$('#domOut .copybtn2').forEach(function(b){b.addEventListener('click',function(){copyText(b.getAttribute('data-c'),b);});});
+  out.scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+function dstep(n,t){return '<div style="display:flex;gap:11px;align-items:flex-start;margin:9px 0"><span style="flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-family:var(--fm);font-size:12px;font-weight:700;color:var(--ink);background:linear-gradient(180deg,var(--amber),var(--amber2))">'+n+'</span><div style="font-size:14px;line-height:1.5">'+t+'</div></div>';}
+
+buildAddons();render();loadVersions();revealLanding();
 </script>
 </body>
 </html>
