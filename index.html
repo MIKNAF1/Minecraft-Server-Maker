@@ -285,7 +285,33 @@ html{scrollbar-width:none;-ms-overflow-style:none}
 .kv code{font-family:var(--fm);color:var(--text);word-break:break-all}
 .copybtn2{font-family:var(--fd);font-weight:700;font-size:12px;padding:6px 12px;border-radius:9px;cursor:pointer;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 50%,var(--panel));color:var(--text)}
 .copybtn2.done{background:var(--good);color:#04240f;border-color:transparent}
-@media(max-width:620px){.how{grid-template-columns:1fr}.kv{grid-template-columns:1fr;gap:3px}}
+.dpick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.dopt{text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:13px;padding:14px;background:color-mix(in srgb,var(--bg) 45%,var(--panel));color:var(--text);transition:.14s;font:inherit}
+.dopt:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--amber) 38%,var(--line))}
+.dopt.sel{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent);box-shadow:inset 0 0 0 1px var(--amber)}
+.dopt b{display:block;font-family:var(--fd);font-size:16px;margin-bottom:3px}
+.dopt span{display:block;color:var(--muted);font-size:12.5px;line-height:1.4}
+.check.static li{cursor:default}
+.check.static li:hover{border-color:var(--line)}
+.cbn{width:24px;height:24px;flex:none;border-radius:7px;display:grid;place-items:center;font-family:var(--fm);font-size:12px;font-weight:700;color:var(--ink);background:linear-gradient(180deg,var(--amber),var(--amber2))}
+@media(max-width:620px){.how,.dpick{grid-template-columns:1fr}.kv{grid-template-columns:1fr;gap:3px}}
+
+/* edit view dropzone */
+.dropzone{border:2px dashed color-mix(in srgb,var(--amber) 40%,var(--line));border-radius:16px;padding:34px 20px;text-align:center;cursor:pointer;
+  background:color-mix(in srgb,var(--panel) 45%,transparent);transition:.15s}
+.dropzone.drag,.dropzone:hover{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.dz-inner{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dz-ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:28px;font-weight:300;color:var(--ink);background:linear-gradient(180deg,var(--amber),var(--amber2));margin-bottom:6px}
+.dz-inner b{font-family:var(--fd);font-size:17px}
+.dropzone u{cursor:pointer}
+textarea{font:inherit;color:var(--text);padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--bg) 50%,var(--panel));outline:none;width:100%;resize:vertical}
+textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--amber) 55%,var(--line))}
+
+/* feedback */
+.fbwrap{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;padding:20px 20px 10px}
+.fbcard{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:linear-gradient(180deg,var(--card-top),transparent 14%),var(--card);box-shadow:var(--shadow-sm)}
+.fbcard h3{font-family:var(--fd);font-weight:700;margin:0 0 4px;font-size:19px}
+@media(max-width:760px){.fbwrap{grid-template-columns:1fr}}
 
 /* connect-friends checklist */
 .joinpanel{margin-top:18px}
@@ -347,7 +373,53 @@ html{scrollbar-width:none;-ms-overflow-style:none}
     <div class="how-card reveal d1"><div class="how-n">2</div><h3>Download &amp; run</h3><p>Unzip the folder, open Start. It grabs the server for you and launches — no renaming, no eula.txt.</p></div>
     <div class="how-card reveal d2"><div class="how-n">3</div><h3>Invite friends</h3><p>We walk you through connecting friends, with a free no-router option and a custom domain helper.</p></div>
   </div>
-  <div class="wrap" style="text-align:center;padding:6px 0 50px"><button class="btn primary big reveal" id="startBig2" type="button">Start building <span class="arrow">&rarr;</span></button></div>
+  <div class="wrap" style="text-align:center;padding:6px 0 14px"><button class="btn primary big reveal" id="startBig2" type="button">Start building <span class="arrow">&rarr;</span></button></div>
+  <div class="wrap reveal" style="text-align:center;padding:0 0 46px"><button class="btn ghost" id="editEntry" type="button">Already have a server folder? Edit it &rarr;</button></div>
+</div>
+
+<!-- ============ EDIT VIEW ============ -->
+<div id="view-edit" class="view">
+<div class="builder"><div class="wrap">
+  <button class="btn ghost sm backhome" id="backHomeE" type="button">&larr; Home</button>
+  <section class="step show">
+    <h2>Edit an existing server</h2>
+    <p class="lead">Already downloaded a server folder? Drop your <code>server.properties</code> here, change the settings with friendly controls, and download the updated file to drop back in.</p>
+
+    <div id="dropZone" class="dropzone">
+      <input id="propFile" type="file" accept=".properties,text/plain" style="display:none" />
+      <div class="dz-inner">
+        <div class="dz-ic">+</div>
+        <b>Drop your server.properties here</b>
+        <span class="muted">or <u id="propBrowse">click to choose the file</u></span>
+      </div>
+    </div>
+
+    <div id="editForm" style="display:none">
+      <div class="row">
+        <div class="fld"><label>Server name (MOTD)</label><input id="eMotd" type="text" /></div>
+        <div class="fld"><label>Max players</label><input id="eMax" type="number" min="1" max="500" /></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Gamemode</label><select id="eGm"><option value="survival">Survival</option><option value="creative">Creative</option><option value="adventure">Adventure</option><option value="spectator">Spectator</option></select></div>
+        <div class="fld"><label>Difficulty</label><select id="eDiff"><option value="peaceful">Peaceful</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Who can join</label><select id="eWl"><option value="false">Anyone</option><option value="true">Whitelist only</option></select></div>
+        <div class="fld"><label>Account type</label><select id="eAuth"><option value="true">Official accounts</option><option value="false">Cracked (offline)</option></select></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>PvP (players can hurt each other)</label><select id="ePvp"><option value="true">On</option><option value="false">Off</option></select></div>
+        <div class="fld"><label>View distance</label><input id="eView" type="number" min="2" max="32" /></div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="eSave" type="button">Download updated server.properties</button>
+        <button class="btn ghost" id="eReset" type="button">Load a different file</button>
+      </div>
+      <div class="status" id="eStatus"></div>
+      <div class="callout" style="margin-top:8px">After downloading, put this file back in your server folder (replace the old one) and restart the server. We only change the settings you see here; everything else in your file stays the same.</div>
+    </div>
+  </section>
+</div></div>
 </div>
 
 <!-- ============ BUILDER VIEW ============ -->
@@ -567,21 +639,37 @@ html{scrollbar-width:none;-ms-overflow-style:none}
 
         <!-- DOMAIN HELPER -->
         <div class="domainbox">
-          <h3>Optional: give your server a custom domain</h3>
-          <p class="muted" style="margin:0 0 16px">A custom domain means friends type something like <code>play.yourname.duckdns.org</code> instead of a long address. It's free, and we'll walk you through every click. First, pick where you want your free domain:</p>
+          <h3>Optional: get a nicer address</h3>
+          <p class="muted" style="margin:0 0 16px">Instead of the long playit address, friends can use something short. Pick how fancy you want to get — the first one is the easiest by far.</p>
 
-          <div class="opts" id="provOpts" style="margin-bottom:18px">
-            <div class="opt sel" data-prov="duck"><div class="oh"><h4>DuckDNS</h4><span class="badge">Simplest</span></div><p>Easiest to set up. Friends will type your address <b>with</b> the port (e.g. <code>:25565</code>). Best if you just want it working fast.</p></div>
-            <div class="opt" data-prov="mc"><div class="oh"><h4>Minecraft subdomain</h4><span class="badge">No port</span></div><p>A service like mine.bz / mcdns. A bit more setup, but friends type a clean address with <b>no port</b>.</p></div>
+          <div class="dpick" id="dpick">
+            <button class="dopt sel" type="button" data-d="easy"><b>Easiest</b><span>A free playit name — no setup, 2 clicks</span></button>
+            <button class="dopt" type="button" data-d="srv"><b>Custom domain</b><span>Use your own like <code>play.yourname.mine.bz</code></span></button>
+            <button class="dopt" type="button" data-d="none"><b>Skip</b><span>Just use the playit address as-is</span></button>
           </div>
 
-          <div class="row">
-            <div class="fld"><label>1. Your current server address (from playit, or your IP)</label><input id="domAddr" type="text" placeholder="logo-bacon.gl.joinmc.link" /></div>
-            <div class="fld"><label>2. Your port</label><input id="domPort" type="number" min="1" max="65535" value="25565" /></div>
+          <div id="dEasy" class="dbody">
+            <ol class="check static">
+              <li><span class="cbn">1</span>In playit.gg, open your tunnel and click the <b>Change domain</b> button (top right).</li>
+              <li><span class="cbn">2</span>Pick any free name it offers you (like <code>something.joinmc.link</code>) and save.</li>
+              <li><span class="cbn">3</span>That new name <b>is</b> your address — share it with friends. Done.</li>
+            </ol>
+            <div class="callout good" style="margin-top:4px">No DNS, no records, nothing to type. This is the one I'd pick.</div>
           </div>
-          <div class="fld"><label>3. The name you want (the part you make up)</label><input id="domName" type="text" placeholder="play" value="play" /></div>
-          <button class="btn primary sm" id="domGen" type="button">Show me exactly what to do</button>
-          <div id="domOut" style="display:none;margin-top:18px"></div>
+
+          <div id="dSrv" class="dbody" style="display:none">
+            <p class="muted" style="margin:0 0 12px">Got a free domain like <code>POOKIETWOWEEKS.mine.bz</code>? Fill these two boxes and we'll show you the <b>one line</b> to paste — no DNS knowledge needed.</p>
+            <div class="row">
+              <div class="fld"><label>Your playit address</label><input id="domAddr" type="text" placeholder="logo-bacon.gl.joinmc.link" /></div>
+              <div class="fld"><label>Your port</label><input id="domPort" type="number" min="1" max="65535" value="25565" /></div>
+            </div>
+            <button class="btn primary sm" id="domGen" type="button">Show me the one line to paste</button>
+            <div id="domOut" style="display:none;margin-top:16px"></div>
+          </div>
+
+          <div id="dNone" class="dbody" style="display:none">
+            <div class="callout">Totally fine. Just give friends your playit address (the orange one in your tunnel, like <code>logo-bacon.gl.joinmc.link</code>). It works exactly the same.</div>
+          </div>
         </div>
       </section>
 
@@ -615,6 +703,26 @@ html{scrollbar-width:none;-ms-overflow-style:none}
 
 <div class="ad"><span class="lbl">Advertisement</span><p class="note">Ad space — paste your ad code here.</p></div>
 </div><!-- /view-build -->
+
+<!-- FEEDBACK + HELP -->
+<div class="wrap fbwrap">
+  <div class="fbcard">
+    <h3>Send us feedback</h3>
+    <p class="muted" style="margin:0 0 12px">Found a bug, or have an idea? Tell us — it helps make BlockForge better.</p>
+    <div class="fld"><textarea id="fbText" rows="3" placeholder="What's on your mind?"></textarea></div>
+    <div class="row">
+      <div class="fld"><label>Your email (optional, if you want a reply)</label><input id="fbEmail" type="text" placeholder="you@example.com" /></div>
+    </div>
+    <button class="btn primary sm" id="fbSend" type="button">Send feedback</button>
+    <div class="status" id="fbStatus"></div>
+  </div>
+  <div class="fbcard">
+    <h3>Need a hand?</h3>
+    <p class="muted" style="margin:0 0 12px">Stuck setting up? Our team can help you out — join the community and ask away.</p>
+    <a class="btn primary sm" id="helpBtn" href="#" target="_blank" rel="noopener">Get live help</a>
+    <p class="muted" style="margin:12px 0 0;font-size:12.5px">Tip: most issues are Java not installed, or the server/playit not running. The Connect-friends step covers the common fixes.</p>
+  </div>
+</div>
 
 <footer class="foot"><div class="wrap">
   <a class="brand" href="#top"><span class="mark"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 1l8 4.5v9L10 19l-8-4.5v-9z" fill="none" stroke="#f6a623" stroke-width="1.4" stroke-linejoin="round"/></svg></span><b>Block<span>Forge</span></b></a>
@@ -1043,55 +1151,108 @@ var hl=$('#howLink');if(hl)hl.addEventListener('click',function(e){e.preventDefa
 /* reveal landing items */
 function revealLanding(){$$('#view-landing .reveal').forEach(function(el){el.classList.add('in');});}
 
-/* ===== custom domain helper ===== */
+/* ===== custom domain helper (simplified) ===== */
 function copyText(t,btn){navigator.clipboard.writeText(t).then(function(){if(btn){var o=btn.textContent;btn.textContent='Copied';btn.classList.add('done');setTimeout(function(){btn.textContent=o;btn.classList.remove('done');},1100);}}).catch(function(){});}
-var PROV='duck';
-$$('#provOpts .opt').forEach(function(o){o.addEventListener('click',function(){
-  $$('#provOpts .opt').forEach(function(x){x.classList.remove('sel')});o.classList.add('sel');PROV=o.getAttribute('data-prov');});});
-function row(k,v){return '<div class="kv"><span>'+k+'</span><code>'+String(v).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</code><button class="copybtn2" data-c="'+String(v).replace(/"/g,'&quot;')+'">Copy</button></div>';}
+$$('#dpick .dopt').forEach(function(o){o.addEventListener('click',function(){
+  $$('#dpick .dopt').forEach(function(x){x.classList.remove('sel')});o.classList.add('sel');
+  var d=o.getAttribute('data-d');
+  $('#dEasy').style.display=d==='easy'?'':'none';
+  $('#dSrv').style.display=d==='srv'?'':'none';
+  $('#dNone').style.display=d==='none'?'':'none';
+});});
 var dg=$('#domGen');
 if(dg)dg.addEventListener('click',function(){
-  var addr=($('#domAddr').value||'').trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/:\d+$/,'');
+  var addr=($('#domAddr').value||'').trim().replace(/^https?:[/][/]/,'').replace(/[/].*$/,'').replace(/:[0-9]+$/,'');
   var port=clampInt($('#domPort').value,1,65535,25565);
-  var name=($('#domName').value||'play').trim().replace(/[^a-z0-9-]/gi,'').toLowerCase()||'play';
   var out=$('#domOut');
-  if(!addr){out.style.display='block';out.innerHTML='<div class="callout">Type your server address first — the one playit gave you (like <code>logo-bacon.gl.joinmc.link</code>), or your home public IP.</div>';return;}
-  var isIp=/^\d{1,3}(\.\d{1,3}){3}$/.test(addr);
-  var html='';
-
-  if(PROV==='duck'){
-    html+='<div class="callout"><strong>Quick note about DuckDNS.</strong> DuckDNS can only point to an <b>IP address</b>, not a playit hostname. So this works best if you use <b>port forwarding</b> (where you have a real IP). If you use playit, the "Minecraft subdomain" option above is the better fit.</div>';
-    html+='<div class="reccard"><h5>Step-by-step — DuckDNS <span class="pilltag">very simple</span></h5>'+
-      dstep(1,'Go to <a class="ilink" href="https://www.duckdns.org" target="_blank" rel="noopener">duckdns.org</a> and sign in (with Google, GitHub, etc. — it\u2019s free).')+
-      dstep(2,'In the box near the top, type the name you want: <b>'+name+'</b> and click <b>add domain</b>. You now own <code>'+name+'.duckdns.org</code>.')+
-      dstep(3,'In the <b>current ip</b> box next to your new domain, paste your server\u2019s IP address:')+
-      '<div style="margin:6px 0 8px">'+row('Put this IP', isIp?addr:'(your home public IP — search "what is my ip")')+'</div>'+
-      dstep(4,'Click <b>update ip</b>. Done.')+
-      dstep(5,'Your friends connect with this address (with the port):')+
-      '<div style="margin-top:6px">'+row('Server address', name+'.duckdns.org:'+port)+'</div>'+
-      '<p class="muted" style="margin:10px 0 0;font-size:12.5px">If your home IP ever changes, just repeat steps 3–4 with the new IP. (DuckDNS has an auto-updater if you want, but that\u2019s optional.)</p></div>';
-  } else {
-    // minecraft subdomain service — supports SRV, works great with playit
-    html+='<div class="callout good"><strong>Great choice for playit.</strong> A Minecraft subdomain service supports SRV records, so friends won\u2019t need to type the port. We\u2019ll give you the exact thing to enter.</div>';
-    html+='<div class="reccard"><h5>Step-by-step — Minecraft subdomain <span class="pilltag">no port for friends</span></h5>'+
-      dstep(1,'Go to a free Minecraft subdomain site, e.g. <a class="ilink" href="https://mcdns.net" target="_blank" rel="noopener">mcdns.net</a> or <a class="ilink" href="https://www.mine.bz" target="_blank" rel="noopener">mine.bz</a>, and sign up (free).')+
-      dstep(2,'Choose to <b>add a new record</b>. For the <b>Type</b>, pick <b>SRV</b>.')+
-      dstep(3,'For the <b>name / subdomain</b>, enter exactly this (the underscores matter!):')+
-      '<div style="margin:6px 0 8px">'+row('Name / Subdomain','_minecraft._tcp.'+name)+'</div>'+
-      dstep(4,'For the <b>destination / content / target</b>, enter exactly this:')+
-      '<div style="margin:6px 0 8px">'+row('Destination','0 0 '+port+' '+addr)+'</div>'+
-      '<p class="muted" style="margin:0 0 8px;font-size:12.5px">(That\u2019s priority <b>0</b>, weight <b>0</b>, your port <b>'+port+'</b>, then your address. Some sites have separate boxes for each — if so: Priority 0, Weight 0, Port '+port+', Target '+addr+'.)</p>'+
-      dstep(5,'Solve the captcha if it shows one, then click <b>Save</b>. Wait 5–15 minutes.')+
-      dstep(6,'Friends connect with just this — no port needed:')+
-      '<div style="margin-top:6px">'+row('Server address', name+'.'+'(your subdomain site, e.g. mine.bz)')+'</div>'+
-      '<p class="muted" style="margin:10px 0 0;font-size:12.5px">Example: if you used mine.bz, the address is <code>'+name+'.mine.bz</code>.</p></div>';
-  }
-  html+='<div class="callout" style="margin-top:14px"><strong>Important:</strong> your server (Start.bat) and the playit app must be <b>running</b> whenever friends try to join — the domain only points <i>to</i> your server, it doesn\u2019t keep it online.</div>';
+  if(!addr){out.style.display='block';out.innerHTML='<div class="callout">Type your playit address first (the orange one, like <code>logo-bacon.gl.joinmc.link</code>).</div>';return;}
+  var html='<div class="reccard"><h5>Do this on your domain site (e.g. mine.bz)</h5>'+
+    dstep(1,'Add a new record. For <b>Type</b>, choose <b>SRV</b>.')+
+    dstep(2,'In the <b>name / subdomain</b> box, paste exactly this:')+
+    '<div style="margin:6px 0 10px">'+drow('Name','_minecraft._tcp.YOURNAME')+'</div>'+
+    '<p class="muted" style="margin:-4px 0 8px;font-size:12.5px">Replace <b>YOURNAME</b> with the subdomain you picked. For <code>POOKIETWOWEEKS.mine.bz</code> use <code>_minecraft._tcp.POOKIETWOWEEKS</code>. The underscores matter.</p>'+
+    dstep(3,'In the <b>destination / content</b> box, paste exactly this one line:')+
+    '<div style="margin:6px 0 10px">'+drow('Destination','0 0 '+port+' '+addr)+'</div>'+
+    dstep(4,'Solve the captcha if shown, click <b>Save</b>, and wait about 10 minutes.')+
+    dstep(5,'Friends now connect with your domain \u2014 no port needed.')+
+    '</div>'+
+    '<div class="callout" style="margin-top:12px"><strong>Tip:</strong> your server (Start.bat) and the playit app must be running when friends join \u2014 the domain just points to your server, it does not keep it online.</div>';
   out.style.display='block';out.innerHTML=html;
   $$('#domOut .copybtn2').forEach(function(b){b.addEventListener('click',function(){copyText(b.getAttribute('data-c'),b);});});
   out.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
+function drow(k,v){return '<div class="kv"><span>'+k+'</span><code>'+String(v).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</code><button class="copybtn2" data-c="'+String(v).replace(/"/g,'&quot;')+'">Copy</button></div>';}
 function dstep(n,t){return '<div style="display:flex;gap:11px;align-items:flex-start;margin:9px 0"><span style="flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-family:var(--fm);font-size:12px;font-weight:700;color:var(--ink);background:linear-gradient(180deg,var(--amber),var(--amber2))">'+n+'</span><div style="font-size:14px;line-height:1.5">'+t+'</div></div>';}
+
+/* ===== edit existing server ===== */
+var ee=$('#editEntry');if(ee)ee.addEventListener('click',function(){switchView('view-edit');});
+var bhe=$('#backHomeE');if(bhe)bhe.addEventListener('click',function(){switchView('view-landing');setTimeout(revealLanding,60);});
+var dz=$('#dropZone'),pf=$('#propFile');
+if(dz){
+  dz.addEventListener('click',function(){pf.click();});
+  var pb=$('#propBrowse');if(pb)pb.addEventListener('click',function(e){e.stopPropagation();pf.click();});
+  ['dragover','dragenter'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.add('drag');});});
+  ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('drag');});});
+  dz.addEventListener('drop',function(e){var f=e.dataTransfer.files[0];if(f)readProps(f);});
+  pf.addEventListener('change',function(e){var f=e.target.files[0];if(f)readProps(f);});
+}
+var PROPS={}, PROPORDER=[], EMOTD_COLOR='', EMOTD_REST='';
+function readProps(file){
+  var r=new FileReader();
+  r.onload=function(ev){
+    var text=ev.target.result;PROPS={};PROPORDER=[];
+    text.split(/\r?\n/).forEach(function(line){
+      if(/^\s*#/.test(line)||line.indexOf('=')<0){PROPORDER.push({raw:line});return;}
+      var i=line.indexOf('='),k=line.slice(0,i),v=line.slice(i+1);
+      PROPS[k]=v;PROPORDER.push({key:k});
+    });
+    // fill form
+    // MOTD: edit as plain text (strip any leading color code and any 2nd line for the box)
+    var rawMotd=PROPS['motd']||'';
+    var cleaned=rawMotd.replace(/^(?:\uFFFD|\u00C2?\u00A7)[0-9a-fk-or]/i,'').replace(/\\n[\s\S]*$/,'');
+    $('#eMotd').value=cleaned;
+    $('#eMax').value=PROPS['max-players']||'10';
+    setSel('#eGm',PROPS['gamemode']||'survival');
+    setSel('#eDiff',PROPS['difficulty']||'normal');
+    setSel('#eWl',PROPS['white-list']||'false');
+    setSel('#eAuth',PROPS['online-mode']||'true');
+    setSel('#ePvp',PROPS['pvp']||'true');
+    $('#eView').value=PROPS['view-distance']||'10';
+    $('#dropZone').style.display='none';$('#editForm').style.display='block';
+    $('#eStatus').textContent='';
+  };
+  r.onerror=function(){alert('Could not read that file. Make sure it is your server.properties.');};
+  r.readAsText(file);
+}
+function setSel(sel,val){var e=$(sel);if(!e)return;for(var i=0;i<e.options.length;i++){if(e.options[i].value===val){e.selectedIndex=i;return;}}}
+var er=$('#eReset');if(er)er.addEventListener('click',function(){$('#editForm').style.display='none';$('#dropZone').style.display='';$('#propFile').value='';});
+var es=$('#eSave');if(es)es.addEventListener('click',function(){
+  // apply edits back onto PROPS, preserving everything else
+  PROPS['motd']=$('#eMotd').value;
+  PROPS['max-players']=String(clampInt($('#eMax').value,1,500,10));
+  PROPS['gamemode']=$('#eGm').value;PROPS['difficulty']=$('#eDiff').value;
+  PROPS['white-list']=$('#eWl').value;PROPS['enforce-whitelist']=$('#eWl').value;
+  PROPS['online-mode']=$('#eAuth').value;PROPS['pvp']=$('#ePvp').value;
+  PROPS['view-distance']=String(clampInt($('#eView').value,2,32,10));
+  // rebuild text in original order
+  var seen={},out=[];
+  PROPORDER.forEach(function(o){if(o.raw!==undefined){out.push(o.raw);}else{out.push(o.key+'='+PROPS[o.key]);seen[o.key]=1;}});
+  // add any new keys not originally present
+  ['enforce-whitelist'].forEach(function(k){if(!seen[k]&&PROPS[k]!==undefined)out.push(k+'='+PROPS[k]);});
+  var blob=new Blob([out.join('\n')+'\n'],{type:'text/plain'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='server.properties';document.body.appendChild(a);a.click();a.remove();
+  $('#eStatus').textContent='Downloaded. Put it back in your server folder (replace the old one) and restart.';
+});
+
+/* ===== feedback (stored locally; wire to a form service later) ===== */
+var fs=$('#fbSend');
+if(fs)fs.addEventListener('click',function(){
+  var t=($('#fbText').value||'').trim();
+  if(!t){$('#fbStatus').textContent='Type a message first.';return;}
+  try{var arr=JSON.parse(localStorage.getItem('bf_feedback')||'[]');arr.push({t:t,e:$('#fbEmail').value||'',at:Date.now()});localStorage.setItem('bf_feedback',JSON.stringify(arr));}catch(e){}
+  $('#fbText').value='';$('#fbEmail').value='';
+  $('#fbStatus').textContent='Thanks — your feedback was recorded. (Hook this up to email/Discord to receive it.)';
+});
 
 buildAddons();render();loadVersions();revealLanding();
 </script>
