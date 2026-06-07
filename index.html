@@ -596,7 +596,7 @@ textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--ambe
         <h2>Download your server</h2>
         <p class="lead">Here is what you set up. Accept the licence, then download.</p>
         <div class="summary" id="summary"></div>
-        <div class="callout good"><strong>No renaming, no eula.txt editing.</strong> Unzip the folder and open <code>Start</code> (Windows) or <code>start.command</code> (Mac). The start file finds your server file on its own.</div>
+        <div class="callout good"><strong>One click, and friends can join.</strong> Unzip the folder and open <code>Start</code> (Mac: <code>start.command</code>). It downloads the server, starts it, and sets up a free public address with playit.gg for you. First run only, it shows one link to click — after that it's automatic.</div>
         <label class="eula">
           <input type="checkbox" id="eulaCheck" />
           <div>I accept the <a href="https://aka.ms/MinecraftEULA" target="_blank" rel="noopener">Minecraft End User Licence Agreement</a>. <span class="muted">Required. This sets <code>eula=true</code> for you.</span></div>
@@ -971,22 +971,21 @@ function serverProps(){
     'pvp=true','spawn-protection=0','level-name=world'].join('\n')+'\n';
 }
 function paperDownloadPS(){
-  // simple + robust: ask Paper v3 for the latest build, download the server jar
   return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $r=Invoke-RestMethod \\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\"; $u=$r.downloads.\'server:default\'.url; Invoke-WebRequest $u -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
 }
 function startBat(){
   var L=[];
   L.push('@echo off');
-  L.push('title Minecraft Server');
+  L.push('title '+(S.motd||'Minecraft Server'));
   L.push('cd /d "%~dp0"');
   L.push('');
+  L.push('REM ===== 1. find or download the server =====');
   L.push('set "JAR="');
   L.push('for %%f in (*.jar) do set "JAR=%%f"');
   L.push('');
   if(S.sw==='paper'){
     L.push('if not defined JAR (');
-    L.push('  echo No server file found. Downloading Paper '+S.mcver+' for you...');
-    L.push('  echo This can take a minute, please wait.');
+    L.push('  echo Downloading Paper '+S.mcver+' for you, please wait...');
     L.push('  '+paperDownloadPS());
     L.push('  for %%f in (*.jar) do set "JAR=%%f"');
     L.push(')');
@@ -995,22 +994,41 @@ function startBat(){
   L.push('if not defined JAR (');
   L.push('  echo.');
   L.push('  echo Could not find a server file.');
-  L.push(S.sw==='paper' ? '  echo Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder.' : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
-  L.push('  echo.');
-  L.push('  pause');
-  L.push('  exit /b');
+  L.push(S.sw==='paper' ? '  echo Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar here.' : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
+  L.push('  echo. & pause & exit /b');
   L.push(')');
   L.push('');
+  L.push('REM ===== 2. check Java =====');
   L.push('java -version >nul 2>&1');
   L.push('if errorlevel 1 (');
   L.push('  echo.');
   L.push('  echo Java was not found. Minecraft '+S.mcver+(/^26\./.test(S.mcver)?' needs Java 25':' needs Java')+'.');
-  L.push('  echo Install it from adoptium.net, then run this again.');
-  L.push('  echo.');
-  L.push('  pause');
-  L.push('  exit /b');
+  L.push('  echo Install it free from adoptium.net, then run this again.');
+  L.push('  echo. & pause & exit /b');
   L.push(')');
   L.push('');
+  L.push('REM ===== 3. set up the public tunnel (playit.gg) =====');
+  L.push('if not exist playit.exe (');
+  L.push('  echo Setting up your public address ^(playit.gg^)...');
+  L.push('  powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ Invoke-WebRequest \'https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe\' -OutFile playit.exe -UseBasicParsing } catch { Write-Host \'Could not download playit \' $_.Exception.Message }"');
+  L.push(')');
+  L.push('if exist playit.exe (');
+  L.push('  if not exist playit.toml (');
+  L.push('    echo.');
+  L.push('    echo ============================================================');
+  L.push('    echo  FIRST TIME ONLY: a window will open with a CLAIM link like');
+  L.push('    echo  https://playit.gg/claim/xxxxx  -  open it once in your browser');
+  L.push('    echo  and click Allow. After that it is automatic forever.');
+  L.push('    echo ============================================================');
+  L.push('    echo.');
+  L.push('  )');
+  L.push('  start "Public Address (playit.gg) - keep open" cmd /k playit.exe');
+  L.push('  echo Your public address shows in the playit window ^(and at playit.gg/account/tunnels^).');
+  L.push('  echo Friends connect using that address.');
+  L.push('  echo.');
+  L.push(')');
+  L.push('');
+  L.push('REM ===== 4. start the server =====');
   L.push('echo Starting %JAR% with '+S.ram+'GB RAM...');
   L.push('java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "%JAR%" nogui');
   L.push('');
@@ -1020,7 +1038,8 @@ function startBat(){
   return L.join('\r\n')+'\r\n';
 }
 function startSh(){
-  var L=['#!/bin/bash','cd "$(dirname "$0")"','JAR=$(ls *.jar 2>/dev/null | head -n1)'];
+  var L=['#!/bin/bash','cd "$(dirname "$0")"'];
+  L.push('JAR=$(ls *.jar 2>/dev/null | head -n1)');
   if(S.sw==='paper'){
     L.push('if [ -z "$JAR" ]; then');
     L.push('  echo "Downloading Paper '+S.mcver+'..."');
@@ -1030,6 +1049,17 @@ function startSh(){
     L.push('fi');
   }
   L.push('if [ -z "$JAR" ]; then echo "No server .jar found. Put one here and run again."; read -n1; exit 1; fi');
+  L.push('# public tunnel (playit.gg)');
+  L.push('OS=$(uname -s); ARCH=$(uname -m)');
+  L.push('if [ ! -f ./playit ]; then');
+  L.push('  echo "Setting up your public address (playit.gg)..."');
+  L.push('  if [ "$OS" = "Darwin" ]; then PURL="https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-darwin-aarch64"; else PURL="https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-x86_64"; fi');
+  L.push('  curl -L -o playit "$PURL" && chmod +x ./playit');
+  L.push('fi');
+  L.push('if [ -f ./playit ]; then');
+  L.push('  echo "First time only: a CLAIM link (https://playit.gg/claim/...) will appear below - open it once in your browser. After that it is automatic."');
+  L.push('  ./playit &');
+  L.push('fi');
   L.push('echo "Starting $JAR with '+S.ram+'GB RAM..."');
   L.push('java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "$JAR" nogui');
   return L.join('\n')+'\n';
@@ -1070,11 +1100,15 @@ function readme(){var slugs=Object.keys(S.addons).filter(function(k){return S.ad
                   :'- No renaming: Start uses whatever .jar is in the folder.',
     '- The EULA is already accepted (you ticked the box), so eula.txt is set to true.',
     '- Memory is '+S.ram+'GB. To change it, edit the number in Start.bat.',
-    /^26\./.test(S.mcver)?'- Minecraft '+S.mcver+' needs Java 25 installed.':'',
+    /^26\./.test(S.mcver)?'- Minecraft '+S.mcver+' needs Java 25 installed (get it free at adoptium.net).':'',
     '- Add-ons download from Modrinth and need an internet connection.','',
-    'PLAY WITH FRIENDS',
-    '- Same Wi-Fi: friends use your computer\u2019s local IP (run ipconfig).',
-    '- Anywhere: install playit.gg (free) and share the address it gives you. No port forwarding.','',
+    'PLAY WITH FRIENDS (built in)',
+    '- Start.bat sets up a free public address for you using playit.gg automatically.',
+    '- FIRST TIME ONLY: a small window opens with a link like https://playit.gg/claim/...',
+    '  Open that link once in your browser and click Allow. After that it is automatic.',
+    '- Your public address appears in that playit window (and at playit.gg/account/tunnels).',
+    '  Share that address with friends - they paste it into Multiplayer > Add Server.',
+    '- Keep the playit window open while you play. Close it to go offline.','',
     'Not affiliated with Mojang Studios or Microsoft.'].filter(Boolean).join('\n')+'\n';}
 
 function setStatus(m){$('#status').textContent=m||'';}
