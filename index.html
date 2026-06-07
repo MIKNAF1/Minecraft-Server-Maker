@@ -312,6 +312,7 @@ textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--ambe
 .fbcard{border:1px solid var(--line);border-radius:var(--radius);padding:22px;background:linear-gradient(180deg,var(--card-top),transparent 14%),var(--card);box-shadow:var(--shadow-sm)}
 .fbcard h3{font-family:var(--fd);font-weight:700;margin:0 0 4px;font-size:19px}
 @media(max-width:760px){.fbwrap{grid-template-columns:1fr}}
+.motd-preview{font-family:var(--fm);background:linear-gradient(180deg,#1b1b2a,#11111c);border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:16px;color:#fff;min-height:20px}
 
 /* connect-friends checklist */
 .joinpanel{margin-top:18px}
@@ -395,13 +396,39 @@ textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--ambe
     </div>
 
     <div id="editForm" style="display:none">
+      <div class="fld"><label>Server name (MOTD)</label><input id="eMotd" type="text" /></div>
       <div class="row">
-        <div class="fld"><label>Server name (MOTD)</label><input id="eMotd" type="text" /></div>
-        <div class="fld"><label>Max players</label><input id="eMax" type="number" min="1" max="500" /></div>
+        <div class="fld">
+          <label>Text colour</label>
+          <div class="swatches" id="eSwatches"></div>
+        </div>
+        <div class="fld">
+          <label>Style</label>
+          <div class="pills"><span class="pill" id="eBold">Bold</span><span class="pill" id="eItalic">Italic</span></div>
+        </div>
+      </div>
+      <div class="fld">
+        <label>Preview (how it looks in the server list)</label>
+        <div class="motd-preview"><span id="eMotdPrev">Your server name</span></div>
+      </div>
+      <div class="fld">
+        <label>Server icon</label>
+        <div class="iconcard">
+          <div class="iconpreview" id="eIconPrev">current / none</div>
+          <div class="iconcard-body">
+            <input id="eIconFile" type="file" accept="image/*" style="display:none" />
+            <div class="iconcard-btns"><button class="btn ghost sm" id="eIconBtn" type="button">Upload new icon</button></div>
+            <div class="help">Uploads a new <code>server-icon.png</code> (64×64). It downloads as a separate file — drop it in your server folder too.</div>
+          </div>
+        </div>
       </div>
       <div class="row">
+        <div class="fld"><label>Max players</label><input id="eMax" type="number" min="1" max="500" /></div>
         <div class="fld"><label>Gamemode</label><select id="eGm"><option value="survival">Survival</option><option value="creative">Creative</option><option value="adventure">Adventure</option><option value="spectator">Spectator</option></select></div>
+      </div>
+      <div class="row">
         <div class="fld"><label>Difficulty</label><select id="eDiff"><option value="peaceful">Peaceful</option><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></div>
+        <div class="fld"><label>View distance</label><input id="eView" type="number" min="2" max="32" /></div>
       </div>
       <div class="row">
         <div class="fld"><label>Who can join</label><select id="eWl"><option value="false">Anyone</option><option value="true">Whitelist only</option></select></div>
@@ -409,14 +436,14 @@ textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--ambe
       </div>
       <div class="row">
         <div class="fld"><label>PvP (players can hurt each other)</label><select id="ePvp"><option value="true">On</option><option value="false">Off</option></select></div>
-        <div class="fld"><label>View distance</label><input id="eView" type="number" min="2" max="32" /></div>
+        <div class="fld"></div>
       </div>
       <div class="actions">
         <button class="btn primary" id="eSave" type="button">Download updated server.properties</button>
         <button class="btn ghost" id="eReset" type="button">Load a different file</button>
       </div>
       <div class="status" id="eStatus"></div>
-      <div class="callout" style="margin-top:8px">After downloading, put this file back in your server folder (replace the old one) and restart the server. We only change the settings you see here; everything else in your file stays the same.</div>
+      <div class="callout" style="margin-top:8px">After downloading, put the file(s) back in your server folder (replace the old ones) and restart. We only change the settings you see here; everything else in your file stays the same.</div>
     </div>
   </section>
 </div></div>
@@ -944,40 +971,68 @@ function serverProps(){
     'pvp=true','spawn-protection=0','level-name=world'].join('\n')+'\n';
 }
 function paperDownloadPS(){
-  // tries the new v3 API, falls back to the old v2; saves as server.jar
-  return "powershell -NoProfile -Command \"$v='"+S.mcver+"'; $ok=$false; "+
-    "try { $r=Invoke-RestMethod \\\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\\"; $u=$r.downloads.'server:default'.url; if(-not $u){$u=$r.downloads.application.url}; Invoke-WebRequest $u -OutFile server.jar; $ok=$true } catch {} ; "+
-    "if(-not $ok){ try { $b=(Invoke-RestMethod \\\"https://api.papermc.io/v2/projects/paper/versions/$v/builds\\\").builds[-1]; $n=$b.downloads.application.name; Invoke-WebRequest \\\"https://api.papermc.io/v2/projects/paper/versions/$v/builds/$($b.build)/downloads/$n\\\" -OutFile server.jar; $ok=$true } catch {} } ; "+
-    "if($ok){ Write-Host 'Downloaded server.jar' } else { Write-Host 'Could not download automatically. Get Paper "+S.mcver+" from papermc.io/downloads and put the .jar in this folder.' }\"";
+  // simple + robust: ask Paper v3 for the latest build, download the server jar
+  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $r=Invoke-RestMethod \\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\"; $u=$r.downloads.\'server:default\'.url; Invoke-WebRequest $u -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
 }
 function startBat(){
-  var lines=['@echo off','title Minecraft Server','cd /d "%~dp0"','setlocal enabledelayedexpansion','set "JAR="',
-    'for %%f in (*.jar) do set "JAR=%%f"'];
+  var L=[];
+  L.push('@echo off');
+  L.push('title Minecraft Server');
+  L.push('cd /d "%~dp0"');
+  L.push('');
+  L.push('set "JAR="');
+  L.push('for %%f in (*.jar) do set "JAR=%%f"');
+  L.push('');
   if(S.sw==='paper'){
-    lines.push('if "!JAR!"=="" (',
-      '  echo No server file yet. Downloading Paper for Minecraft '+S.mcver+' ...',
-      '  '+paperDownloadPS(),
-      '  for %%f in (*.jar) do set "JAR=%%f"',
-      ')');
+    L.push('if not defined JAR (');
+    L.push('  echo No server file found. Downloading Paper '+S.mcver+' for you...');
+    L.push('  echo This can take a minute, please wait.');
+    L.push('  '+paperDownloadPS());
+    L.push('  for %%f in (*.jar) do set "JAR=%%f"');
+    L.push(')');
+    L.push('');
   }
-  lines.push('if "!JAR!"=="" ( echo.& echo No server file found. Put a .jar in this folder, then run this again. & pause & exit /b )',
-    'echo Starting !JAR! with '+S.ram+'GB RAM...','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "!JAR!" nogui','echo.','echo Server stopped.','pause >nul');
-  return lines.join('\r\n')+'\r\n';
+  L.push('if not defined JAR (');
+  L.push('  echo.');
+  L.push('  echo Could not find a server file.');
+  L.push(S.sw==='paper' ? '  echo Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder.' : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
+  L.push('  echo.');
+  L.push('  pause');
+  L.push('  exit /b');
+  L.push(')');
+  L.push('');
+  L.push('java -version >nul 2>&1');
+  L.push('if errorlevel 1 (');
+  L.push('  echo.');
+  L.push('  echo Java was not found. Minecraft '+S.mcver+(/^26\./.test(S.mcver)?' needs Java 25':' needs Java')+'.');
+  L.push('  echo Install it from adoptium.net, then run this again.');
+  L.push('  echo.');
+  L.push('  pause');
+  L.push('  exit /b');
+  L.push(')');
+  L.push('');
+  L.push('echo Starting %JAR% with '+S.ram+'GB RAM...');
+  L.push('java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "%JAR%" nogui');
+  L.push('');
+  L.push('echo.');
+  L.push('echo Server stopped. Press any key to close.');
+  L.push('pause >nul');
+  return L.join('\r\n')+'\r\n';
 }
 function startSh(){
-  var lines=['#!/bin/bash','cd "$(dirname "$0")"','JAR=$(ls *.jar 2>/dev/null | head -n1)'];
+  var L=['#!/bin/bash','cd "$(dirname "$0")"','JAR=$(ls *.jar 2>/dev/null | head -n1)'];
   if(S.sw==='paper'){
-    lines.push('if [ -z "$JAR" ]; then',
-      '  echo "No server file yet. Downloading Paper for Minecraft '+S.mcver+' ..."',
-      '  V="'+S.mcver+'"',
-      '  B=$(curl -s "https://api.papermc.io/v2/projects/paper/versions/$V/builds" | grep -o \'"build":[0-9]*\' | tail -1 | grep -o \'[0-9]*\')',
-      '  curl -s -o server.jar "https://api.papermc.io/v2/projects/paper/versions/$V/builds/$B/downloads/paper-$V-$B.jar"',
-      '  JAR=$(ls *.jar 2>/dev/null | head -n1)',
-      'fi');
+    L.push('if [ -z "$JAR" ]; then');
+    L.push('  echo "Downloading Paper '+S.mcver+'..."');
+    L.push('  URL=$(curl -s "https://fill.papermc.io/v3/projects/paper/versions/'+S.mcver+'/builds/latest" | grep -o \'"url":"[^"]*"\' | grep server | head -1 | sed \'s/.*"url":"//;s/"$//\')');
+    L.push('  if [ -n "$URL" ]; then curl -L -o server.jar "$URL"; fi');
+    L.push('  JAR=$(ls *.jar 2>/dev/null | head -n1)');
+    L.push('fi');
   }
-  lines.push('if [ -z "$JAR" ]; then echo "No .jar found. Put your server file here and run again."; read -n1; exit 1; fi',
-    'echo "Starting $JAR with '+S.ram+'GB RAM..."','java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "$JAR" nogui');
-  return lines.join('\n')+'\n';
+  L.push('if [ -z "$JAR" ]; then echo "No server .jar found. Put one here and run again."; read -n1; exit 1; fi');
+  L.push('echo "Starting $JAR with '+S.ram+'GB RAM..."');
+  L.push('java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "$JAR" nogui');
+  return L.join('\n')+'\n';
 }
 function getServerBat(){
   if(S.sw==='paper'){return ['@echo off','title Get server file','cd /d "%~dp0"','echo Downloading Paper for Minecraft '+S.mcver+' ...',
@@ -1196,7 +1251,35 @@ if(dz){
   dz.addEventListener('drop',function(e){var f=e.dataTransfer.files[0];if(f)readProps(f);});
   pf.addEventListener('change',function(e){var f=e.target.files[0];if(f)readProps(f);});
 }
-var PROPS={}, PROPORDER=[], EMOTD_COLOR='', EMOTD_REST='';
+var PROPS={}, PROPORDER=[];
+var ECOLOR='', EBOLD=false, EITALIC=false, EICON=null;
+var MCHEX={'0':'#000000','1':'#0000aa','2':'#00aa00','3':'#00aaaa','4':'#aa0000','5':'#aa00aa','6':'#ffaa00','7':'#aaaaaa','8':'#555555','9':'#5555ff','a':'#55ff55','b':'#55ffff','c':'#ff5555','d':'#ff55ff','e':'#ffff55','f':'#ffffff'};
+/* build edit-page swatches */
+(function(){var w=$('#eSwatches');if(!w)return;
+  var order=['f','a','e','6','b','d','c','9','2','7'];
+  order.forEach(function(code){var el=document.createElement('span');el.className='sw';el.style.background=MCHEX[code];el.setAttribute('data-code',code);
+    el.addEventListener('click',function(){ECOLOR=(ECOLOR==='\u00A7'+code)?'':'\u00A7'+code;syncSw();ePrev();});w.appendChild(el);});})();
+function syncSw(){$$('#eSwatches .sw').forEach(function(s){s.classList.toggle('sel','\u00A7'+s.getAttribute('data-code')===ECOLOR);});}
+var ebd=$('#eBold'),eit=$('#eItalic');
+if(ebd)ebd.addEventListener('click',function(){EBOLD=!EBOLD;ebd.classList.toggle('sel',EBOLD);ePrev();});
+if(eit)eit.addEventListener('click',function(){EITALIC=!EITALIC;eit.classList.toggle('sel',EITALIC);ePrev();});
+var em=$('#eMotd');if(em)em.addEventListener('input',ePrev);
+function ePrev(){var p=$('#eMotdPrev');if(!p)return;var txt=$('#eMotd').value||'Your server name';
+  p.textContent=txt;p.style.color=ECOLOR?MCHEX[ECOLOR.slice(-1)]:'#ffffff';
+  p.style.fontWeight=EBOLD?'700':'400';p.style.fontStyle=EITALIC?'italic':'normal';}
+function buildMotd(){return (ECOLOR||'')+(EBOLD?'\u00A7l':'')+(EITALIC?'\u00A7o':'')+($('#eMotd').value||'');}
+
+/* edit-page icon uploader (separate download) */
+var eib=$('#eIconBtn');if(eib)eib.addEventListener('click',function(){$('#eIconFile').click();});
+var eif=$('#eIconFile');
+if(eif)eif.addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;if(!/^image\//.test(f.type)){alert('Pick an image file.');return;}
+  var rd=new FileReader();rd.onload=function(ev){var img=new Image();img.onload=function(){
+    var c=document.createElement('canvas');c.width=64;c.height=64;var x=c.getContext('2d');
+    var s=Math.min(img.width,img.height),sx=(img.width-s)/2,sy=(img.height-s)/2;x.drawImage(img,sx,sy,s,s,0,0,64,64);
+    var url=c.toDataURL('image/png');EICON=dataURLToBytes(url);$('#eIconPrev').innerHTML='<img src="'+url+'">';};
+    img.onerror=function(){alert('Could not load that image.');};img.src=ev.target.result;};
+  rd.readAsDataURL(f);});
+
 function readProps(file){
   var r=new FileReader();
   r.onload=function(ev){
@@ -1206,11 +1289,16 @@ function readProps(file){
       var i=line.indexOf('='),k=line.slice(0,i),v=line.slice(i+1);
       PROPS[k]=v;PROPORDER.push({key:k});
     });
-    // fill form
-    // MOTD: edit as plain text (strip any leading color code and any 2nd line for the box)
-    var rawMotd=PROPS['motd']||'';
-    var cleaned=rawMotd.replace(/^(?:\uFFFD|\u00C2?\u00A7)[0-9a-fk-or]/i,'').replace(/\\n[\s\S]*$/,'');
-    $('#eMotd').value=cleaned;
+    // normalise section sign (handle mojibake Â§ and replacement char) to real §
+    var rawMotd=(PROPS['motd']||'').replace(/\u00C2\u00A7/g,'\u00A7').replace(/\uFFFD/g,'\u00A7');
+    // read existing color + styles
+    ECOLOR='';EBOLD=false;EITALIC=false;
+    var cm=rawMotd.match(/\u00A7([0-9a-f])/i);if(cm)ECOLOR='\u00A7'+cm[1].toLowerCase();
+    if(/\u00A7l/i.test(rawMotd))EBOLD=true;
+    if(/\u00A7o/i.test(rawMotd))EITALIC=true;
+    var plain=rawMotd.replace(/\u00A7[0-9a-fk-or]/ig,'').replace(/\\n[\s\S]*$/,'');
+    $('#eMotd').value=plain;syncSw();
+    if(ebd)ebd.classList.toggle('sel',EBOLD);if(eit)eit.classList.toggle('sel',EITALIC);ePrev();
     $('#eMax').value=PROPS['max-players']||'10';
     setSel('#eGm',PROPS['gamemode']||'survival');
     setSel('#eDiff',PROPS['difficulty']||'normal');
@@ -1218,6 +1306,7 @@ function readProps(file){
     setSel('#eAuth',PROPS['online-mode']||'true');
     setSel('#ePvp',PROPS['pvp']||'true');
     $('#eView').value=PROPS['view-distance']||'10';
+    EICON=null;$('#eIconPrev').textContent='current / none';$('#eIconFile').value='';
     $('#dropZone').style.display='none';$('#editForm').style.display='block';
     $('#eStatus').textContent='';
   };
@@ -1227,21 +1316,20 @@ function readProps(file){
 function setSel(sel,val){var e=$(sel);if(!e)return;for(var i=0;i<e.options.length;i++){if(e.options[i].value===val){e.selectedIndex=i;return;}}}
 var er=$('#eReset');if(er)er.addEventListener('click',function(){$('#editForm').style.display='none';$('#dropZone').style.display='';$('#propFile').value='';});
 var es=$('#eSave');if(es)es.addEventListener('click',function(){
-  // apply edits back onto PROPS, preserving everything else
-  PROPS['motd']=$('#eMotd').value;
+  PROPS['motd']=buildMotd();
   PROPS['max-players']=String(clampInt($('#eMax').value,1,500,10));
   PROPS['gamemode']=$('#eGm').value;PROPS['difficulty']=$('#eDiff').value;
   PROPS['white-list']=$('#eWl').value;PROPS['enforce-whitelist']=$('#eWl').value;
   PROPS['online-mode']=$('#eAuth').value;PROPS['pvp']=$('#ePvp').value;
   PROPS['view-distance']=String(clampInt($('#eView').value,2,32,10));
-  // rebuild text in original order
   var seen={},out=[];
   PROPORDER.forEach(function(o){if(o.raw!==undefined){out.push(o.raw);}else{out.push(o.key+'='+PROPS[o.key]);seen[o.key]=1;}});
-  // add any new keys not originally present
   ['enforce-whitelist'].forEach(function(k){if(!seen[k]&&PROPS[k]!==undefined)out.push(k+'='+PROPS[k]);});
   var blob=new Blob([out.join('\n')+'\n'],{type:'text/plain'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='server.properties';document.body.appendChild(a);a.click();a.remove();
-  $('#eStatus').textContent='Downloaded. Put it back in your server folder (replace the old one) and restart.';
+  var msg='Downloaded server.properties. Put it back in your server folder and restart.';
+  if(EICON){var b2=new Blob([EICON],{type:'image/png'});var a2=document.createElement('a');a2.href=URL.createObjectURL(b2);a2.download='server-icon.png';document.body.appendChild(a2);setTimeout(function(){a2.click();a2.remove();},400);msg='Downloaded server.properties + server-icon.png. Put both in your server folder and restart.';}
+  $('#eStatus').textContent=msg;
 });
 
 /* ===== feedback (stored locally; wire to a form service later) ===== */
