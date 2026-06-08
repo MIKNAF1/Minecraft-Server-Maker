@@ -981,6 +981,10 @@ function serverProps(){
 function paperDownloadPS(){
   return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $r=Invoke-RestMethod \\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\"; $u=$r.downloads.\'server:default\'.url; Invoke-WebRequest $u -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
 }
+function fabricDownloadPS(){
+  // ask Fabric meta for newest loader + installer, then download the ready server-launcher jar
+  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $ld=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/loader\\" | Where-Object {$_.stable} | Select-Object -First 1).version; $inst=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/installer\\" | Where-Object {$_.stable} | Select-Object -First 1).version; Invoke-WebRequest \\"https://meta.fabricmc.net/v2/versions/loader/$v/$ld/$inst/server/jar\\" -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
+}
 function startBat(){
   var L=[];
   L.push('@echo off');
@@ -998,11 +1002,18 @@ function startBat(){
     L.push('  for %%f in (*.jar) do set "JAR=%%f"');
     L.push(')');
     L.push('');
+  } else if(S.sw==='fabric'){
+    L.push('if not defined JAR (');
+    L.push('  echo Downloading Fabric for '+S.mcver+', please wait...');
+    L.push('  '+fabricDownloadPS());
+    L.push('  for %%f in (*.jar) do set "JAR=%%f"');
+    L.push(')');
+    L.push('');
   }
   L.push('if not defined JAR (');
   L.push('  echo.');
   L.push('  echo Could not find a server file.');
-  L.push(S.sw==='paper' ? '  echo Get Paper '+S.mcver+' from papermc.io/downloads and put the .jar here.' : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
+  L.push((S.sw==='paper'||S.sw==='fabric') ? '  echo Auto-download did not work. Check your internet and run again, or put a .jar here manually.' : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
   L.push('  echo. & pause & exit /b');
   L.push(')');
   L.push('');
@@ -1066,6 +1077,14 @@ function startSh(){
     L.push('  if [ -n "$URL" ]; then curl -L -o server.jar "$URL"; fi');
     L.push('  JAR=$(ls *.jar 2>/dev/null | head -n1)');
     L.push('fi');
+  } else if(S.sw==='fabric'){
+    L.push('if [ -z "$JAR" ]; then');
+    L.push('  echo "Downloading Fabric for '+S.mcver+'..."');
+    L.push('  LD=$(curl -s "https://meta.fabricmc.net/v2/versions/loader" | grep -o \'"version":"[^"]*"\' | head -1 | sed \'s/.*:"//;s/"//\')');
+    L.push('  INST=$(curl -s "https://meta.fabricmc.net/v2/versions/installer" | grep -o \'"version":"[^"]*"\' | head -1 | sed \'s/.*:"//;s/"//\')');
+    L.push('  curl -L -o server.jar "https://meta.fabricmc.net/v2/versions/loader/'+S.mcver+'/$LD/$INST/server/jar"');
+    L.push('  JAR=$(ls *.jar 2>/dev/null | head -n1)');
+    L.push('fi');
   }
   L.push('if [ -z "$JAR" ]; then echo "No server .jar found. Put one here and run again."; read -n1; exit 1; fi');
   L.push('# public tunnel (playit.gg)');
@@ -1114,7 +1133,7 @@ function readme(){var slugs=Object.keys(S.addons).filter(function(k){return S.ad
                   :'2) Open  "1 - get server.bat"  to download the '+SWNAME[S.sw]+' server, put the .jar in this folder, then open  "Start.bat".',
     slugs.length?'3) For your add-ons, open  "install add-ons.bat"  once.':'',
     '','GOOD TO KNOW',
-    S.sw==='paper'?'- One click: Start downloads the server itself the first time, then just runs it after that.'
+    (S.sw==='paper'||S.sw==='fabric')?'- One click: Start downloads the server itself the first time, then just runs it after that.'
                   :'- No renaming: Start uses whatever .jar is in the folder.',
     '- The EULA is already accepted (you ticked the box), so eula.txt is set to true.',
     '- Memory is '+S.ram+'GB. To change it, edit the number in Start.bat.',
@@ -1137,7 +1156,7 @@ $('#downloadZip').addEventListener('click',function(){
   zip.file('server.properties',serverProps());
   zip.file('Start.bat',startBat());zip.file('start.command',startSh());
   // Paper downloads itself inside Start, so the separate get-server file is only needed for Fabric/Forge
-  if(S.sw!=='paper')zip.file('1 - get server.bat',getServerBat());
+  if(S.sw!=='paper'&&S.sw!=='fabric')zip.file('1 - get server.bat',getServerBat());
   zip.file('README.txt',readme());
   if(S.icon)zip.file('server-icon.png',S.icon);
   var slugs=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
