@@ -473,7 +473,7 @@ textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--ambe
           <div class="opt sel" data-sw="paper"><div class="oh"><h4>Paper</h4><span class="badge">Recommended</span></div><p>Fast and stable, runs Bukkit/Spigot plugins. Best all-rounder for survival and minigames.</p></div>
           <div class="opt" data-sw="vanilla"><div class="oh"><h4>Vanilla</h4></div><p>The official server with no changes. No plugins or mods — pure Minecraft.</p></div>
           <div class="opt" data-sw="fabric"><div class="oh"><h4>Fabric</h4></div><p>Lightweight modding. Friends need the same mods installed to join.</p></div>
-          <div class="opt" data-sw="forge"><div class="oh"><h4>Forge</h4></div><p>The classic modding platform for large modpacks. Friends need the same mods.</p></div>
+          <div class="opt" data-sw="neoforge"><div class="oh"><h4>NeoForge</h4></div><p>The modern modding platform for big modpacks (the successor to Forge). Auto-installs. Friends need the same mods.</p></div>
         </div>
         <div class="fld" style="margin-top:20px">
           <label>Minecraft version</label>
@@ -797,7 +797,7 @@ var CATALOG={
     {slug:'spark',name:'spark',desc:'Find lag sources.'},
     {slug:'chunky',name:'Chunky',desc:'Pre-generate the world.'}
   ],
-  forge:[
+  neoforge:[
     {slug:'ferrite-core',name:'FerriteCore',desc:'Uses less memory.',on:true},
     {slug:'spark',name:'spark',desc:'Find lag sources.'},
     {slug:'chunky',name:'Chunky',desc:'Pre-generate the world.'}
@@ -854,7 +854,7 @@ var searchTimer=null;
 function loaderFacet(){
   if(S.sw==='paper')return '[["categories:paper","categories:bukkit","categories:spigot","categories:purpur","categories:folia"]]';
   if(S.sw==='fabric')return '[["categories:fabric"]]';
-  if(S.sw==='forge')return '[["categories:forge","categories:neoforge"]]';
+  if(S.sw==='neoforge')return '[["categories:neoforge","categories:forge"]]';
   return '[]';
 }
 function doSearch(q){
@@ -933,7 +933,7 @@ $('#iconFile').addEventListener('change',function(e){
 });
 $('#iconClear').addEventListener('click',function(){S.icon=null;S.iconURL=null;$('#iconFile').value='';$('#iconClear').style.display='none';render();});
 
-var SWNAME={paper:'Paper',vanilla:'Vanilla',fabric:'Fabric',forge:'Forge'};
+var SWNAME={paper:'Paper',vanilla:'Vanilla',fabric:'Fabric',neoforge:'NeoForge'};
 function colorHex(code){for(var i=0;i<COLORS.length;i++)if(COLORS[i][0]===code)return COLORS[i][1];return '#fff';}
 function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s;}
 function clampInt(n,min,max,fb){var x=parseInt(n,10);if(isNaN(x))return fb;return Math.min(max,Math.max(min,x));}
@@ -982,10 +982,104 @@ function paperDownloadPS(){
   return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $r=Invoke-RestMethod \\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\"; $u=$r.downloads.\'server:default\'.url; Invoke-WebRequest $u -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
 }
 function fabricDownloadPS(){
-  // ask Fabric meta for newest loader + installer, then download the ready server-launcher jar
-  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $ld=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/loader\\" | Where-Object {$_.stable} | Select-Object -First 1).version; $inst=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/installer\\" | Where-Object {$_.stable} | Select-Object -First 1).version; Invoke-WebRequest \\"https://meta.fabricmc.net/v2/versions/loader/$v/$ld/$inst/server/jar\\" -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
+  // robust: get the newest loader FOR THIS game version, and newest installer, then build the server jar URL
+  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ '+
+    '$v=\''+S.mcver+'\'; '+
+    '$ld=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/loader/$v\\")[0].loader.version; '+
+    '$inst=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/installer\\")[0].version; '+
+    'Invoke-WebRequest \\"https://meta.fabricmc.net/v2/versions/loader/$v/$ld/$inst/server/jar\\" -OutFile server.jar -UseBasicParsing; '+
+    'Write-Host \'Download complete.\' '+
+    '} catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
+}
+function neoMcKey(){
+  // NeoForge versions track MC as YY.minor.x : MC 26.1.2 -> neoforge starts "26.1." ; MC 1.21.4 -> "21.4."
+  var v=S.mcver;
+  var m26=v.match(/^(\d{2})\.(\d+)\./); // 26.1.2
+  if(m26)return m26[1]+'.'+m26[2]+'.';
+  var m1=v.match(/^1\.(\d+)\.(\d+)/);   // 1.21.4 -> 21.4.
+  if(m1)return m1[1]+'.'+m1[2]+'.';
+  var m1b=v.match(/^1\.(\d+)$/);        // 1.21 -> 21.0.
+  if(m1b)return m1b[1]+'.0.';
+  return '';
+}
+function neoInstallPS(){
+  var key=neoMcKey();
+  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $key=\''+key+'\'; $all=(Invoke-RestMethod \\"https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge\\").versions; $v=($all | Where-Object {$_ -like \\"$key*\\" -and $_ -notlike \\"*beta*\\"} | Select-Object -Last 1); if(-not $v){ $v=($all | Where-Object {$_ -like \\"$key*\\"} | Select-Object -Last 1) }; if(-not $v){ Write-Host \'No NeoForge build for this version yet.\'; exit }; Write-Host \\"Installing NeoForge $v ...\\"; Invoke-WebRequest \\"https://maven.neoforged.net/releases/net/neoforged/neoforge/$v/neoforge-$v-installer.jar\\" -OutFile neoforge-installer.jar -UseBasicParsing; java -jar neoforge-installer.jar --install-server; Write-Host \'NeoForge installed.\' } catch { Write-Host \'Auto-install failed:\' $_.Exception.Message }"';
+}
+function playitLines(L){
+  L.push('REM ===== set up the public tunnel (playit.gg) =====');
+  L.push('if not exist playit.exe (');
+  L.push('  echo Setting up your public address ^(playit.gg^)...');
+  L.push('  powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ Invoke-WebRequest \'https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe\' -OutFile playit.exe -UseBasicParsing } catch { Write-Host \'Could not download playit \' $_.Exception.Message }"');
+  L.push(')');
+  L.push('if not exist playit.exe goto startserver');
+  L.push('tasklist /FI "IMAGENAME eq playit.exe" 2>nul | find /I "playit.exe" >nul');
+  L.push('if not errorlevel 1 (');
+  L.push('  echo playit is already running - using your existing public address.');
+  L.push('  echo Friends connect using that address ^(see playit.gg/account/tunnels^).');
+  L.push('  echo. & goto startserver');
+  L.push(')');
+  L.push('if not exist playit.toml (');
+  L.push('  echo.');
+  L.push('  echo ============================================================');
+  L.push('  echo  FIRST TIME ONLY: a window opens with a CLAIM link like');
+  L.push('  echo  https://playit.gg/claim/xxxxx  -  open it once in your browser');
+  L.push('  echo  and click Allow. After that it is automatic forever.');
+  L.push('  echo ============================================================');
+  L.push('  echo.');
+  L.push(')');
+  L.push('start "Public Address (playit.gg) - keep open" cmd /k playit.exe');
+  L.push('echo ------------------------------------------------------------');
+  L.push('echo  YOUR SERVER ADDRESS ^(give this to friends^):');
+  L.push('echo  Open  https://playit.gg/account/tunnels  to see it.');
+  L.push('echo  It looks like   something.gl.joinmc.link');
+  L.push('echo  Friends paste it into Minecraft: Multiplayer ^> Add Server.');
+  L.push('echo ------------------------------------------------------------');
+  L.push('echo.');
+}
+function neoStartBat(){
+  var L=[];
+  L.push('@echo off');
+  L.push('title '+(S.motd||'Minecraft Server'));
+  L.push('cd /d "%~dp0"');
+  L.push('');
+  L.push('REM ===== check Java first =====');
+  L.push('java -version >nul 2>&1');
+  L.push('if errorlevel 1 (');
+  L.push('  echo.');
+  L.push('  echo Java was not found. Minecraft '+S.mcver+(/^26\./.test(S.mcver)?' needs Java 25':' needs Java')+'.');
+  L.push('  echo Install it free from adoptium.net, then run this again.');
+  L.push('  echo. & pause & exit /b');
+  L.push(')');
+  L.push('');
+  L.push('REM ===== install NeoForge if not already done =====');
+  L.push('if not exist run.bat (');
+  L.push('  echo Installing NeoForge for '+S.mcver+' - this can take a couple of minutes...');
+  L.push('  '+neoInstallPS());
+  L.push(')');
+  L.push('if not exist run.bat (');
+  L.push('  echo.');
+  L.push('  echo NeoForge could not be installed automatically.');
+  L.push('  echo There may be no NeoForge build for '+S.mcver+' yet. Try neoforged.net.');
+  L.push('  echo. & pause & exit /b');
+  L.push(')');
+  L.push('');
+  L.push('REM ===== set RAM =====');
+  L.push('echo -Xms'+S.ram+'G> user_jvm_args.txt');
+  L.push('echo -Xmx'+S.ram+'G>> user_jvm_args.txt');
+  L.push('');
+  playitLines(L);
+  L.push('');
+  L.push(':startserver');
+  L.push('echo Starting NeoForge server with '+S.ram+'GB RAM...');
+  L.push('call run.bat');
+  L.push('echo.');
+  L.push('echo Server stopped. Press any key to close.');
+  L.push('pause >nul');
+  return L.join('\r\n')+'\r\n';
 }
 function startBat(){
+  if(S.sw==='neoforge')return neoStartBat();
   var L=[];
   L.push('@echo off');
   L.push('title '+(S.motd||'Minecraft Server'));
@@ -1013,7 +1107,7 @@ function startBat(){
   L.push('if not defined JAR (');
   L.push('  echo.');
   L.push('  echo Could not find a server file.');
-  L.push((S.sw==='paper'||S.sw==='fabric') ? '  echo Auto-download did not work. Check your internet and run again, or put a .jar here manually.' : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
+  L.push((S.sw==='paper'||S.sw==='fabric') ? '  echo Auto-download did not work. '+(S.sw==='fabric'?'Fabric may not support '+S.mcver+' yet - get the server jar from fabricmc.net/use/server and drop it here.':'Check your internet and run again, or put a .jar here manually.') : '  echo Put your '+SWNAME[S.sw]+' server .jar in this folder, then run again.');
   L.push('  echo. & pause & exit /b');
   L.push(')');
   L.push('');
@@ -1026,37 +1120,8 @@ function startBat(){
   L.push('  echo. & pause & exit /b');
   L.push(')');
   L.push('');
-  L.push('REM ===== 3. set up the public tunnel (playit.gg) =====');
-  L.push('if not exist playit.exe (');
-  L.push('  echo Setting up your public address ^(playit.gg^)...');
-  L.push('  powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ Invoke-WebRequest \'https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe\' -OutFile playit.exe -UseBasicParsing } catch { Write-Host \'Could not download playit \' $_.Exception.Message }"');
-  L.push(')');
-  L.push('if not exist playit.exe goto startserver');
-  L.push('REM is playit already running?');
-  L.push('tasklist /FI "IMAGENAME eq playit.exe" 2>nul | find /I "playit.exe" >nul');
-  L.push('if not errorlevel 1 (');
-  L.push('  echo playit is already running - using your existing public address.');
-  L.push('  echo Friends connect using that address ^(see playit.gg/account/tunnels^).');
-  L.push('  echo.');
-  L.push('  goto startserver');
-  L.push(')');
-  L.push('if not exist playit.toml (');
-  L.push('  echo.');
-  L.push('  echo ============================================================');
-  L.push('  echo  FIRST TIME ONLY: a window opens with a CLAIM link like');
-  L.push('  echo  https://playit.gg/claim/xxxxx  -  open it once in your browser');
-  L.push('  echo  and click Allow. After that it is automatic forever.');
-  L.push('  echo ============================================================');
-  L.push('  echo.');
-  L.push(')');
-  L.push('start "Public Address (playit.gg) - keep open" cmd /k playit.exe');
-  L.push('echo ------------------------------------------------------------');
-  L.push('echo  YOUR SERVER ADDRESS ^(give this to friends^):');
-  L.push('echo  Open  https://playit.gg/account/tunnels  to see it.');
-  L.push('echo  It looks like   something.gl.joinmc.link');
-  L.push('echo  Friends paste it into Minecraft: Multiplayer ^> Add Server.');
-  L.push('echo ------------------------------------------------------------');
-  L.push('echo.');
+  L.push('');
+  playitLines(L);
   L.push('');
   L.push(':startserver');
   L.push('echo Starting %JAR% with '+S.ram+'GB RAM...');
@@ -1080,7 +1145,7 @@ function startSh(){
   } else if(S.sw==='fabric'){
     L.push('if [ -z "$JAR" ]; then');
     L.push('  echo "Downloading Fabric for '+S.mcver+'..."');
-    L.push('  LD=$(curl -s "https://meta.fabricmc.net/v2/versions/loader" | grep -o \'"version":"[^"]*"\' | head -1 | sed \'s/.*:"//;s/"//\')');
+    L.push('  LD=$(curl -s "https://meta.fabricmc.net/v2/versions/loader/'+S.mcver+'" | grep -o \'"version":"[^"]*"\' | head -1 | sed \'s/.*:"//;s/"//\')');
     L.push('  INST=$(curl -s "https://meta.fabricmc.net/v2/versions/installer" | grep -o \'"version":"[^"]*"\' | head -1 | sed \'s/.*:"//;s/"//\')');
     L.push('  curl -L -o server.jar "https://meta.fabricmc.net/v2/versions/loader/'+S.mcver+'/$LD/$INST/server/jar"');
     L.push('  JAR=$(ls *.jar 2>/dev/null | head -n1)');
@@ -1111,7 +1176,7 @@ function getServerBat(){
 function installPs1(){
   var slugs=Object.keys(S.addons).filter(function(k){return S.addons[k].on;});
   var target=(S.sw==='paper')?'plugins':'mods';
-  var facet=(S.sw==='paper')?'["paper","spigot","bukkit","purpur"]':(S.sw==='fabric')?'["fabric"]':'["forge","neoforge"]';
+  var facet=(S.sw==='paper')?'["paper","spigot","bukkit","purpur"]':(S.sw==='fabric')?'["fabric"]':'["neoforge","forge"]';
   return ['$ErrorActionPreference="SilentlyContinue"','$ver="'+S.mcver+'"','$dir="'+target+'"',
     'New-Item -ItemType Directory -Force -Path $dir | Out-Null',
     '$slugs=@('+slugs.map(function(s){return '"'+s+'"';}).join(',')+')',
