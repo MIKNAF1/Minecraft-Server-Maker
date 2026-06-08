@@ -636,20 +636,28 @@ textarea:focus{box-shadow:var(--focus);border-color:color-mix(in srgb,var(--ambe
 
         <!-- PLAYIT -->
         <div class="joinpanel" id="join-playit" style="display:none">
-          <div class="callout good"><strong>playit.gg gives your server a public address for free</strong> — no router changes, friends can be anywhere. Keep the playit app open while you play.</div>
+          <div class="callout good"><strong>Good news:</strong> your download already includes this. When you run <code>Start.bat</code>, it sets up a free public address with playit.gg for you. You just do a quick one-time sign-in. Here's the whole thing:</div>
           <ul class="check" id="playitChecks">
-            <li data-c><span class="cb"></span>Start your server (<code>Start.bat</code>) and leave it running.</li>
-            <li data-c><span class="cb"></span>Download playit.gg and install it. <a class="ilink" href="https://playit.gg/download" target="_blank" rel="noopener">Open playit.gg →</a></li>
-            <li data-c><span class="cb"></span>Open the playit app and sign in (free account).</li>
-            <li data-c><span class="cb"></span>Add a <b>Minecraft Java</b> tunnel — it points to <code>127.0.0.1:25565</code> by default, which is correct.</li>
-            <li data-c><span class="cb"></span>playit shows you an address like <code>yourname.playit.gg</code>. That is your server address.</li>
-            <li data-c><span class="cb"></span>Share that address. Friends use <b>Multiplayer → Add Server</b> and paste it in.</li>
+            <li data-c><span class="cb"></span>Open <code>Start.bat</code>. A second window titled <b>"Public Address (playit.gg)"</b> opens on its own.</li>
+            <li data-c><span class="cb"></span><b>First time only:</b> that window shows a link like <code>playit.gg/claim/xxxxx</code>. Copy it into your browser and press Enter.</li>
+            <li data-c><span class="cb"></span>On that page, <b>sign in or make a free account</b> (Google/Discord/email — takes 20 seconds), then click <b>Allow / Add to account</b>.</li>
+            <li data-c><span class="cb"></span>Back in the playit window it now says connected. You won't have to claim again — it's automatic from now on.</li>
+            <li data-c><span class="cb"></span>Get your address: open <a class="ilink" href="https://playit.gg/account/tunnels" target="_blank" rel="noopener">playit.gg/account/tunnels →</a> and copy the address (looks like <code>something.gl.joinmc.link</code>).</li>
+            <li data-c><span class="cb"></span>Send that address to friends. They open <b>Multiplayer → Add Server</b> and paste it in.</li>
           </ul>
+          <div class="callout"><strong>Clock tip:</strong> if the playit window spams <i>"local timestamp is off"</i>, your PC clock is wrong. Fix: Windows <b>Settings → Time &amp; language → Date &amp; time → Sync now</b>.</div>
+
+          <div class="fld" style="margin-top:6px">
+            <label>Make a message to send friends</label>
+            <input id="shareAddr" type="text" placeholder="paste your address, e.g. something.gl.joinmc.link" />
+          </div>
+          <button class="btn primary sm" id="shareGen" type="button">Make the message</button>
+          <div id="shareOut" style="display:none;margin-top:12px"></div>
         </div>
 
         <!-- PORT FORWARD -->
         <div class="joinpanel" id="join-port" style="display:none">
-          <div class="callout"><strong>Heads up:</strong> port forwarding opens your home network to the internet. It works well but is the most technical option, and steps differ per router. If it feels like too much, use the "Anywhere (online)" option instead.</div>
+          <div class="callout"><strong>Heads up:</strong> port forwarding opens your home network to the internet. It works well but is the most technical option, and steps differ per router. If it feels like too much, use the "Anywhere (online)" option instead — it's already built into your Start file.</div>
           <ul class="check" id="portChecks">
             <li data-c><span class="cb"></span>Find your local IPv4 address (<code>ipconfig</code> → IPv4, like <code>192.168.x.x</code>).</li>
             <li data-c><span class="cb"></span>Open your router page in a browser: usually <code>192.168.0.1</code> or <code>192.168.1.1</code>.</li>
@@ -1012,23 +1020,34 @@ function startBat(){
   L.push('  echo Setting up your public address ^(playit.gg^)...');
   L.push('  powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ Invoke-WebRequest \'https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe\' -OutFile playit.exe -UseBasicParsing } catch { Write-Host \'Could not download playit \' $_.Exception.Message }"');
   L.push(')');
-  L.push('if exist playit.exe (');
-  L.push('  if not exist playit.toml (');
-  L.push('    echo.');
-  L.push('    echo ============================================================');
-  L.push('    echo  FIRST TIME ONLY: a window will open with a CLAIM link like');
-  L.push('    echo  https://playit.gg/claim/xxxxx  -  open it once in your browser');
-  L.push('    echo  and click Allow. After that it is automatic forever.');
-  L.push('    echo ============================================================');
-  L.push('    echo.');
-  L.push('  )');
-  L.push('  start "Public Address (playit.gg) - keep open" cmd /k playit.exe');
-  L.push('  echo Your public address shows in the playit window ^(and at playit.gg/account/tunnels^).');
-  L.push('  echo Friends connect using that address.');
+  L.push('if not exist playit.exe goto startserver');
+  L.push('REM is playit already running?');
+  L.push('tasklist /FI "IMAGENAME eq playit.exe" 2>nul | find /I "playit.exe" >nul');
+  L.push('if not errorlevel 1 (');
+  L.push('  echo playit is already running - using your existing public address.');
+  L.push('  echo Friends connect using that address ^(see playit.gg/account/tunnels^).');
+  L.push('  echo.');
+  L.push('  goto startserver');
+  L.push(')');
+  L.push('if not exist playit.toml (');
+  L.push('  echo.');
+  L.push('  echo ============================================================');
+  L.push('  echo  FIRST TIME ONLY: a window opens with a CLAIM link like');
+  L.push('  echo  https://playit.gg/claim/xxxxx  -  open it once in your browser');
+  L.push('  echo  and click Allow. After that it is automatic forever.');
+  L.push('  echo ============================================================');
   L.push('  echo.');
   L.push(')');
+  L.push('start "Public Address (playit.gg) - keep open" cmd /k playit.exe');
+  L.push('echo ------------------------------------------------------------');
+  L.push('echo  YOUR SERVER ADDRESS ^(give this to friends^):');
+  L.push('echo  Open  https://playit.gg/account/tunnels  to see it.');
+  L.push('echo  It looks like   something.gl.joinmc.link');
+  L.push('echo  Friends paste it into Minecraft: Multiplayer ^> Add Server.');
+  L.push('echo ------------------------------------------------------------');
+  L.push('echo.');
   L.push('');
-  L.push('REM ===== 4. start the server =====');
+  L.push(':startserver');
   L.push('echo Starting %JAR% with '+S.ram+'GB RAM...');
   L.push('java -Xms'+S.ram+'G -Xmx'+S.ram+'G -jar "%JAR%" nogui');
   L.push('');
@@ -1050,14 +1069,13 @@ function startSh(){
   }
   L.push('if [ -z "$JAR" ]; then echo "No server .jar found. Put one here and run again."; read -n1; exit 1; fi');
   L.push('# public tunnel (playit.gg)');
-  L.push('OS=$(uname -s); ARCH=$(uname -m)');
   L.push('if [ ! -f ./playit ]; then');
   L.push('  echo "Setting up your public address (playit.gg)..."');
-  L.push('  if [ "$OS" = "Darwin" ]; then PURL="https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-darwin-aarch64"; else PURL="https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-x86_64"; fi');
+  L.push('  if [ "$(uname -s)" = "Darwin" ]; then PURL="https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-darwin-aarch64"; else PURL="https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-linux-x86_64"; fi');
   L.push('  curl -L -o playit "$PURL" && chmod +x ./playit');
   L.push('fi');
-  L.push('if [ -f ./playit ]; then');
-  L.push('  echo "First time only: a CLAIM link (https://playit.gg/claim/...) will appear below - open it once in your browser. After that it is automatic."');
+  L.push('if [ -f ./playit ] && ! pgrep -x playit >/dev/null; then');
+  L.push('  echo "First time only: a CLAIM link (https://playit.gg/claim/...) appears below - open it once in your browser. After that it is automatic."');
   L.push('  ./playit &');
   L.push('fi');
   L.push('echo "Starting $JAR with '+S.ram+'GB RAM..."');
@@ -1108,7 +1126,7 @@ function readme(){var slugs=Object.keys(S.addons).filter(function(k){return S.ad
     '  Open that link once in your browser and click Allow. After that it is automatic.',
     '- Your public address appears in that playit window (and at playit.gg/account/tunnels).',
     '  Share that address with friends - they paste it into Multiplayer > Add Server.',
-    '- Keep the playit window open while you play. Close it to go offline.','',
+    '- Keep the playit window open while you play. Close it to go offline.','- If playit shows "local timestamp ... off" warnings, your PC clock is wrong:','  Windows Settings > Time & language > Date & time > Sync now.','',
     'Not affiliated with Mojang Studios or Microsoft.'].filter(Boolean).join('\n')+'\n';}
 
 function setStatus(m){$('#status').textContent=m||'';}
@@ -1249,6 +1267,21 @@ $$('#dpick .dopt').forEach(function(o){o.addEventListener('click',function(){
   $('#dSrv').style.display=d==='srv'?'':'none';
   $('#dNone').style.display=d==='none'?'':'none';
 });});
+/* friend-message helper */
+var sg=$('#shareGen');
+if(sg)sg.addEventListener('click',function(){
+  var addr=($('#shareAddr').value||'').trim().replace(/^https?:\/\//,'');
+  var out=$('#shareOut');
+  if(!addr){out.style.display='block';out.innerHTML='<div class="callout">Paste your address first (from playit.gg/account/tunnels).</div>';return;}
+  var name=S.motd||'my server';
+  var msg='Come play on '+name+'!\nServer address: '+addr+'\nHow to join: Minecraft Java > Multiplayer > Add Server > paste the address > Join.';
+  out.style.display='block';
+  out.innerHTML='<div class="reccard"><h5>Copy this and send it to friends</h5>'+
+    '<textarea id="shareMsg" rows="4" readonly style="margin-bottom:10px">'+msg.replace(/</g,'&lt;')+'</textarea>'+
+    '<button class="btn primary sm" id="shareCopy" type="button">Copy message</button></div>';
+  $('#shareCopy').addEventListener('click',function(){copyText(msg,this);});
+});
+
 var dg=$('#domGen');
 if(dg)dg.addEventListener('click',function(){
   var addr=($('#domAddr').value||'').trim().replace(/^https?:[/][/]/,'').replace(/[/].*$/,'').replace(/:[0-9]+$/,'');
