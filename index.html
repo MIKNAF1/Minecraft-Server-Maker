@@ -979,15 +979,27 @@ function serverProps(){
     'pvp=true','spawn-protection=0','level-name=world'].join('\n')+'\n';
 }
 function paperDownloadPS(){
-  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $v=\''+S.mcver+'\'; $r=Invoke-RestMethod \\"https://fill.papermc.io/v3/projects/paper/versions/$v/builds/latest\\"; $u=$r.downloads.\'server:default\'.url; Invoke-WebRequest $u -OutFile server.jar -UseBasicParsing; Write-Host \'Download complete.\' } catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
+  var L=[];
+  L.push('echo This can take up to 30 seconds. If your network blocks it, see README.txt for the manual fix.');
+  L.push('for /f "usebackq delims=" %%U in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ (Invoke-RestMethod \'https://fill.papermc.io/v3/projects/paper/versions/'+S.mcver+'/builds/latest\' -TimeoutSec 20).downloads.\'server:default\'.url } catch {}"`) do (');
+  L.push('  echo Downloading from %%U');
+  L.push('  curl -L --fail -m 25 -o server.jar "%%U"');
+  L.push(')');
+  L.push('if not exist server.jar (');
+  L.push('  echo.');
+  L.push('  echo Could not download automatically ^(network may be blocking it^).');
+  L.push('  echo Manual fix: get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder, then run Start again.');
+  L.push('  echo.');
+  L.push(')');
+  return L.join('\r\n  ');
 }
 function fabricDownloadPS(){
   // robust: get the newest loader FOR THIS game version, and newest installer, then build the server jar URL
   return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ '+
     '$v=\''+S.mcver+'\'; '+
-    '$ld=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/loader/$v\\")[0].loader.version; '+
-    '$inst=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/installer\\")[0].version; '+
-    'Invoke-WebRequest \\"https://meta.fabricmc.net/v2/versions/loader/$v/$ld/$inst/server/jar\\" -OutFile server.jar -UseBasicParsing; '+
+    '$ld=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/loader/$v\\" -TimeoutSec 20)[0].loader.version; '+
+    '$inst=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/installer\\" -TimeoutSec 20)[0].version; '+
+    'Invoke-WebRequest \\"https://meta.fabricmc.net/v2/versions/loader/$v/$ld/$inst/server/jar\\" -OutFile server.jar -UseBasicParsing -TimeoutSec 25; '+
     'Write-Host \'Download complete.\' '+
     '} catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
 }
@@ -1010,7 +1022,15 @@ function playitLines(L){
   L.push('REM ===== set up the public tunnel (playit.gg) =====');
   L.push('if not exist playit.exe (');
   L.push('  echo Setting up your public address ^(playit.gg^)...');
-  L.push('  powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ Invoke-WebRequest \'https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe\' -OutFile playit.exe -UseBasicParsing } catch { Write-Host \'Could not download playit \' $_.Exception.Message }"');
+  L.push('  echo This can take up to 30 seconds. If your network blocks it, see README.txt for the manual fix.');
+  L.push('  curl -L --fail -m 25 -o playit.exe "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64-signed.exe"');
+  L.push('  if not exist playit.exe (');
+  L.push('    echo.');
+  L.push('    echo Could not download playit automatically ^(network may be blocking it^).');
+  L.push('    echo Manual fix: download from https://playit.gg/download in your browser,');
+  L.push('    echo rename the file to  playit.exe  and put it in this folder, then run Start again.');
+  L.push('    echo.');
+  L.push('  )');
   L.push(')');
   L.push('if not exist playit.exe goto startserver');
   L.push('tasklist /FI "IMAGENAME eq playit.exe" 2>nul | find /I "playit.exe" >nul');
