@@ -955,28 +955,31 @@ function serverProps(){
 }
 function paperDownloadPS(){
   var L=[];
-  L.push('echo This can take up to 30 seconds. If your network blocks it, see README.txt for the manual fix.');
+  L.push('echo Downloading - this can take a few minutes depending on your connection.');
   L.push('for /f "usebackq delims=" %%U in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ (Invoke-RestMethod \'https://fill.papermc.io/v3/projects/paper/versions/'+S.mcver+'/builds/latest\' -TimeoutSec 20).downloads.\'server:default\'.url } catch {}"`) do (');
   L.push('  echo Downloading from %%U');
-  L.push('  curl -L --fail -m 25 -o server.jar "%%U"');
+  L.push('  curl -4 -L --fail --connect-timeout 15 --speed-limit 1000 --speed-time 20 -m 180 -o server.jar "%%U"');
+  L.push('  if errorlevel 1 if exist server.jar del server.jar');
   L.push(')');
   L.push('if not exist server.jar (');
   L.push('  echo.');
-  L.push('  echo Could not download automatically ^(network may be blocking it^).');
+  L.push('  echo Could not download automatically ^(network may be blocking it, or too slow/unstable^).');
   L.push('  echo Manual fix: get Paper '+S.mcver+' from papermc.io/downloads and put the .jar in this folder, then run Start again.');
   L.push('  echo.');
   L.push(')');
   return L.join('\r\n  ');
 }
 function fabricDownloadPS(){
-  // robust: get the newest loader FOR THIS game version, and newest installer, then build the server jar URL
-  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ '+
-    '$v=\''+S.mcver+'\'; '+
-    '$ld=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/loader/$v\\" -TimeoutSec 20)[0].loader.version; '+
-    '$inst=(Invoke-RestMethod \\"https://meta.fabricmc.net/v2/versions/installer\\" -TimeoutSec 20)[0].version; '+
-    'Invoke-WebRequest \\"https://meta.fabricmc.net/v2/versions/loader/$v/$ld/$inst/server/jar\\" -OutFile server.jar -UseBasicParsing -TimeoutSec 25; '+
-    'Write-Host \'Download complete.\' '+
-    '} catch { Write-Host \'Auto-download failed:\' $_.Exception.Message }"';
+  var L=[];
+  L.push('echo Downloading - this can take a few minutes depending on your connection.');
+  L.push('set "FLD=" & set "FINST="');
+  L.push('for /f "usebackq delims=" %%A in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ (Invoke-RestMethod \'https://meta.fabricmc.net/v2/versions/loader/'+S.mcver+'\' -TimeoutSec 20)[0].loader.version } catch {}"`) do set "FLD=%%A"');
+  L.push('for /f "usebackq delims=" %%B in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ (Invoke-RestMethod \'https://meta.fabricmc.net/v2/versions/installer\' -TimeoutSec 20)[0].version } catch {}"`) do set "FINST=%%B"');
+  L.push('if defined FLD if defined FINST (');
+  L.push('  curl -4 -L --fail --connect-timeout 15 --speed-limit 1000 --speed-time 20 -m 180 -o server.jar "https://meta.fabricmc.net/v2/versions/loader/'+S.mcver+'/%FLD%/%FINST%/server/jar"');
+  L.push('  if errorlevel 1 if exist server.jar del server.jar');
+  L.push(')');
+  return L.join('\r\n  ');
 }
 function neoMcKey(){
   // NeoForge versions track MC as YY.minor.x : MC 26.1.2 -> neoforge starts "26.1." ; MC 1.21.4 -> "21.4."
@@ -991,7 +994,7 @@ function neoMcKey(){
 }
 function neoInstallPS(){
   var key=neoMcKey();
-  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $key=\''+key+'\'; $all=(Invoke-RestMethod \\"https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge\\").versions; $v=($all | Where-Object {$_ -like \\"$key*\\" -and $_ -notlike \\"*beta*\\"} | Select-Object -Last 1); if(-not $v){ $v=($all | Where-Object {$_ -like \\"$key*\\"} | Select-Object -Last 1) }; if(-not $v){ Write-Host \'No NeoForge build for this version yet.\'; exit }; Write-Host \\"Installing NeoForge $v ...\\"; Invoke-WebRequest \\"https://maven.neoforged.net/releases/net/neoforged/neoforge/$v/neoforge-$v-installer.jar\\" -OutFile neoforge-installer.jar -UseBasicParsing; java -jar neoforge-installer.jar --install-server; Write-Host \'NeoForge installed.\' } catch { Write-Host \'Auto-install failed:\' $_.Exception.Message }"';
+  return 'powershell -NoProfile -ExecutionPolicy Bypass -Command "try{ $key=\''+key+'\'; $all=(Invoke-RestMethod \\"https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge\\" -TimeoutSec 20).versions; $v=($all | Where-Object {$_ -like \\"$key*\\" -and $_ -notlike \\"*beta*\\"} | Select-Object -Last 1); if(-not $v){ $v=($all | Where-Object {$_ -like \\"$key*\\"} | Select-Object -Last 1) }; if(-not $v){ Write-Host \'No NeoForge build for this version yet.\'; exit }; Write-Host \\"Installing NeoForge $v ...\\"; Invoke-WebRequest \\"https://maven.neoforged.net/releases/net/neoforged/neoforge/$v/neoforge-$v-installer.jar\\" -OutFile neoforge-installer.jar -UseBasicParsing -TimeoutSec 90; java -jar neoforge-installer.jar --install-server; Write-Host \'NeoForge installed.\' } catch { Write-Host \'Auto-install failed:\' $_.Exception.Message }"';
 }
 function neoStartBat(){
   var L=[];
